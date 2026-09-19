@@ -1,6 +1,6 @@
 # SkillForge ⚔️
 
-[![CI / Quality Gates](https://github.com/your-username/SkillForge/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/SkillForge/actions/workflows/ci.yml)
+[![CI / Quality Gates](https://github.com/MrinmoyShib/skillforge/actions/workflows/ci.yml/badge.svg)](https://github.com/MrinmoyShib/skillforge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)]()
 [![Django 5.2 LTS](https://img.shields.io/badge/Django-5.2_LTS-092E20?logo=django&logoColor=white)]()
@@ -151,8 +151,8 @@
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/<YOUR-USERNAME>/SkillForge.git
-cd SkillForge
+git clone https://github.com/MrinmoyShib/skillforge.git
+cd skillforge
 ```
 
 ### 2. Configure Environment
