@@ -1,0 +1,10 @@
+[build]
+  base = "frontend"
+  publish = "dist"
+  command = "npm ci --include=optional && npm rebuild @tailwindcss/oxide && npm run build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
