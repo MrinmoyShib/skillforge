@@ -1,30 +1,32 @@
+import React, { Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import AppLayout from '../components/layout/AppLayout';
 import ProtectedRoute from './ProtectedRoute';
 import AdminRoute from './AdminRoute';
 import AdminLayout from '../components/layout/AdminLayout';
+import Spinner from '../components/feedback/Spinner';
 
 // Student Pages
-import HomePage from '../pages/HomePage';
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
-import DashboardPage from '../pages/DashboardPage';
-import ProblemsPage from '../pages/ProblemsPage';
-import ProblemDetailPage from '../pages/ProblemDetailPage';
-import ProjectsPage from '../pages/ProjectsPage';
-import ProjectWorkspacePage from '../pages/ProjectWorkspacePage';
-import PortfolioPage from '../pages/PortfolioPage';
-import LeaderboardPage from '../pages/LeaderboardPage';
-import AchievementsPage from '../pages/AchievementsPage';
-import SettingsPage from '../pages/SettingsPage';
-import NotFoundPage from '../pages/NotFoundPage';
+const HomePage = React.lazy(() => import('../pages/HomePage'));
+const LoginPage = React.lazy(() => import('../pages/LoginPage'));
+const RegisterPage = React.lazy(() => import('../pages/RegisterPage'));
+const DashboardPage = React.lazy(() => import('../pages/DashboardPage'));
+const ProblemsPage = React.lazy(() => import('../pages/ProblemsPage'));
+const ProblemDetailPage = React.lazy(() => import('../pages/ProblemDetailPage'));
+const ProjectsPage = React.lazy(() => import('../pages/ProjectsPage'));
+const ProjectWorkspacePage = React.lazy(() => import('../pages/ProjectWorkspacePage'));
+const PortfolioPage = React.lazy(() => import('../pages/PortfolioPage'));
+const LeaderboardPage = React.lazy(() => import('../pages/LeaderboardPage'));
+const AchievementsPage = React.lazy(() => import('../pages/AchievementsPage'));
+const SettingsPage = React.lazy(() => import('../pages/SettingsPage'));
+const NotFoundPage = React.lazy(() => import('../pages/NotFoundPage'));
 
 // Admin Studio Pages
-import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
-import AdminProblemsPage from '../pages/admin/AdminProblemsPage';
-import AdminProjectsPage from '../pages/admin/AdminProjectsPage';
-import AdminUsersPage from '../pages/admin/AdminUsersPage';
-import AdminSubmissionsPage from '../pages/admin/AdminSubmissionsPage';
+const AdminDashboardPage = React.lazy(() => import('../pages/admin/AdminDashboardPage'));
+const AdminProblemsPage = React.lazy(() => import('../pages/admin/AdminProblemsPage'));
+const AdminProjectsPage = React.lazy(() => import('../pages/admin/AdminProjectsPage'));
+const AdminUsersPage = React.lazy(() => import('../pages/admin/AdminUsersPage'));
+const AdminSubmissionsPage = React.lazy(() => import('../pages/admin/AdminSubmissionsPage'));
 
 const router = createBrowserRouter([
   // Main Student Platform Routes
@@ -81,5 +83,9 @@ const router = createBrowserRouter([
 ]);
 
 export default function AppRoutes() {
-  return <RouterProvider router={router} />;
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#0b0f19]"><Spinner size="lg" /></div>}>
+      <RouterProvider router={router} />
+    </Suspense>
+  );
 }

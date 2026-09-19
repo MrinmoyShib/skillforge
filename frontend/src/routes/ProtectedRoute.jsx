@@ -3,9 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/feedback/Spinner';
 
 export default function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  if (loading) return <div className="flex justify-center p-8"><Spinner /></div>;
+  if (isLoading) return <div className="flex justify-center p-8"><Spinner /></div>;
   if (!user) return <Navigate to="/login" replace />;
   
   return children ? children : <Outlet />;

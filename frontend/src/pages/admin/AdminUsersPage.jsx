@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import adminService from '../../services/api/adminService';
 import Spinner from '../../components/feedback/Spinner';
+import { useToast } from '../../components/feedback/Toast';
 
 export default function AdminUsersPage() {
+  const toast = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,7 +52,7 @@ export default function AdminUsersPage() {
       const detail = await adminService.getUser(userId);
       setSelectedUser(detail);
     } catch (err) {
-      alert('Failed to load student telemetry: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Failed to load student telemetry: ' + (err?.response?.data?.detail || err.message));
     } finally {
       setIntelLoading(false);
     }
@@ -66,7 +68,7 @@ export default function AdminUsersPage() {
         setSelectedUser({ ...selectedUser, is_staff: updated.is_staff });
       }
     } catch (err) {
-      alert('Failed to update staff status: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Failed to update staff status: ' + (err?.response?.data?.detail || err.message));
     }
   };
 
@@ -80,7 +82,7 @@ export default function AdminUsersPage() {
         setSelectedUser({ ...selectedUser, is_active: updated.is_active });
       }
     } catch (err) {
-      alert('Failed to toggle active status: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Failed to toggle active status: ' + (err?.response?.data?.detail || err.message));
     }
   };
 
@@ -109,8 +111,9 @@ export default function AdminUsersPage() {
         setSelectedUser(updated);
       }
       setXpModalUser(null);
+      toast.success('XP adjusted successfully.');
     } catch (err) {
-      alert('Failed to adjust XP: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Failed to adjust XP: ' + (err?.response?.data?.detail || err.message));
     } finally {
       setXpSaving(false);
     }

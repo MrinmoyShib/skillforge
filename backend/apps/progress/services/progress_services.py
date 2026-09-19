@@ -57,7 +57,7 @@ def record_problem_solved(*, user, problem, submission) -> int:
         level_info = calculate_level(profile.total_xp)
         new_level = level_info['level']
         profile.current_level = new_level
-        profile.save()
+        profile.save(update_fields=['total_xp', 'problems_solved_count', 'current_streak_days', 'last_solve_date', 'current_level'])
 
         # Log Activity: Solved Problem
         ActivityLog.objects.create(

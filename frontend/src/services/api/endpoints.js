@@ -1,4 +1,11 @@
 export const ENDPOINTS = {
+  ADMIN: {
+    ANALYTICS: '/admin/analytics/',
+    PROBLEMS: '/admin/problems/',
+    PROJECTS: '/admin/projects/',
+    USERS: '/admin/users/',
+    SUBMISSIONS: '/admin/submissions/',
+  },
   AUTH: {
     CSRF: '/auth/csrf/',
     REGISTER: '/auth/register/',
@@ -6,6 +13,11 @@ export const ENDPOINTS = {
     LOGOUT: '/auth/logout/',
     REFRESH: '/auth/token/refresh/',
     ME: '/auth/me/',
+    CHANGE_PASSWORD: '/auth/change-password/',
+    VERIFY_OTP: '/auth/verify-otp/',
+    RESEND_OTP: '/auth/resend-otp/',
+    REQUEST_EMAIL_CHANGE: '/auth/request-email-change/',
+    CONFIRM_EMAIL_CHANGE: '/auth/confirm-email-change/',
   },
   PROBLEMS: '/problems/',
   SUBMISSIONS: '/submissions/',
@@ -15,4 +27,6 @@ export const ENDPOINTS = {
   PROJECTS: '/projects/',
   PORTFOLIO: '/portfolio/',
   PROGRESS: '/progress/',
+  CATEGORIES: '/categories/',
+  TAGS: '/tags/',
 };

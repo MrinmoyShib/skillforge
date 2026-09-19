@@ -22,11 +22,10 @@ print("==> [SkillForge] ERROR: Could not connect to database.")
 sys.exit(1)
 END
 
-echo "==> [SkillForge] Applying database migrations..."
-python manage.py migrate --noinput
-
-echo "==> [SkillForge] Collecting static files..."
-python manage.py collectstatic --noinput --clear
+# NOTE: Database migrations and collectstatic should be run as a separate
+# one-time release/deploy step, NOT during container startup.
+# This prevents race conditions when scaling horizontally.
+# Run manually: docker exec skillforge-django python manage.py migrate
 
 echo "==> [SkillForge] Starting service: $@"
 exec "$@"

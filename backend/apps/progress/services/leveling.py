@@ -13,12 +13,22 @@ DEFAULT_LEVELS = [
 ]
 
 
+from django.core.cache import cache
+
+def get_level_requirements():
+    cached = cache.get('level_requirements')
+    if cached is not None:
+        return cached
+    requirements = list(LevelRequirement.objects.order_by('level'))
+    cache.set('level_requirements', requirements, timeout=86400)  # 24 hours
+    return requirements
+
 def calculate_level(total_xp: int) -> dict:
     """
     Computes level, title, base XP, next level target XP, and progress percentage from total XP.
     Reads from LevelRequirement table, falling back to DEFAULT_LEVELS if unseeded.
     """
-    db_requirements = list(LevelRequirement.objects.order_by('level'))
+    db_requirements = get_level_requirements()
 
     if db_requirements:
         levels = [(r.level, r.xp_threshold, r.title) for r in db_requirements]

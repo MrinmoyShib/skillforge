@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router';
+import Editor from '@monaco-editor/react';
 import { projectService } from '../services/api/projectService';
 import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/feedback/Spinner';
@@ -364,13 +365,13 @@ export default function ProjectWorkspacePage() {
 
             {/* Code Input Area */}
             <div className="p-4 bg-[#0d1117]">
-              <textarea
+              <Editor
+                height="450px"
+                theme="vs-dark"
+                language={project?.language === 'python' ? 'python' : project?.language === 'javascript' ? 'javascript' : 'cpp'}
                 value={activeMilestone ? codeMap[activeMilestone.id] || '' : ''}
-                onChange={(e) => handleCodeChange(e.target.value)}
-                rows={22}
-                spellCheck="false"
-                className="w-full bg-transparent font-mono text-xs text-slate-200 leading-relaxed outline-none resize-y selection:bg-indigo-500 selection:text-white"
-                placeholder={`// Implement Milestone #${activeMilestone?.order || 1} here...`}
+                onChange={(val) => handleCodeChange(val || '')}
+                options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 4 }}
               />
             </div>
 

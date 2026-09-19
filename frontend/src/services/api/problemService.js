@@ -11,11 +11,11 @@ export const problemService = {
   },
 
   getCategories: async () => {
-    return await axiosClient.get('/categories/');
+    return await axiosClient.get(ENDPOINTS.CATEGORIES);
   },
 
   getTags: async () => {
-    return await axiosClient.get('/tags/');
+    return await axiosClient.get(ENDPOINTS.TAGS);
   },
 };
 

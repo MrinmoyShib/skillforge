@@ -47,7 +47,8 @@ class TestAuthServices:
         user = user_register(
             username="alexsmith",
             email="alex@example.com",
-            password="SecurePassword123!"
+            password="SecurePassword123!",
+            is_active=True
         )
         # Auth via username
         auth_user_1 = user_authenticate(username="alexsmith", password="SecurePassword123!")

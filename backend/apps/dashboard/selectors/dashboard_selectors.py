@@ -25,55 +25,51 @@ def get_aggregated_dashboard_data(user) -> dict:
         UserProgress.objects.filter(user=user, solved=True).values_list('problem_id', flat=True)
     )
 
+    from django.db.models import Count, Sum, Q
+
+    track_stats_qs = Problem.objects.filter(is_published=True).values('category_id').annotate(
+        total=Count('id'),
+        beginner_total=Count('id', filter=Q(challenge_level__in=[1, 2])),
+        intermediate_total=Count('id', filter=Q(challenge_level__in=[3, 4])),
+        master_total=Count('id', filter=Q(challenge_level=5)),
+        total_xp=Sum('xp_reward'),
+    )
+    track_stats_map = {item['category_id']: item for item in track_stats_qs}
+
+    solved_stats_qs = UserProgress.objects.filter(
+        user=user, solved=True, problem__is_published=True
+    ).values('problem__category_id').annotate(
+        solved=Count('id'),
+        beginner_solved=Count('id', filter=Q(problem__challenge_level__in=[1, 2])),
+        intermediate_solved=Count('id', filter=Q(problem__challenge_level__in=[3, 4])),
+        master_solved=Count('id', filter=Q(problem__challenge_level=5)),
+        xp_earned=Sum('xp_awarded'),
+    )
+    solved_stats_map = {item['problem__category_id']: item for item in solved_stats_qs}
+
     for cat in categories:
-        cat_problems = Problem.objects.filter(category=cat, is_published=True)
-        total = cat_problems.count()
-        solved_count = UserProgress.objects.filter(
-            user=user,
-            problem__category=cat,
-            problem__is_published=True,
-            solved=True
-        ).count()
+        cat_id = cat.id
+        track = track_stats_map.get(cat_id, {})
+        solved_stat = solved_stats_map.get(cat_id, {})
+
+        total = track.get('total', 0)
+        solved_count = solved_stat.get('solved', 0)
         percent = round((solved_count / total) * 100, 1) if total > 0 else 0.0
 
-        beginner_total = cat_problems.filter(challenge_level__in=[1, 2]).count()
-        beginner_solved = UserProgress.objects.filter(
-            user=user,
-            problem__category=cat,
-            problem__challenge_level__in=[1, 2],
-            problem__is_published=True,
-            solved=True
-        ).count()
+        beginner_total = track.get('beginner_total', 0)
+        beginner_solved = solved_stat.get('beginner_solved', 0)
 
-        intermediate_total = cat_problems.filter(challenge_level__in=[3, 4]).count()
-        intermediate_solved = UserProgress.objects.filter(
-            user=user,
-            problem__category=cat,
-            problem__challenge_level__in=[3, 4],
-            problem__is_published=True,
-            solved=True
-        ).count()
+        intermediate_total = track.get('intermediate_total', 0)
+        intermediate_solved = solved_stat.get('intermediate_solved', 0)
 
-        master_total = cat_problems.filter(challenge_level=5).count()
-        master_solved = UserProgress.objects.filter(
-            user=user,
-            problem__category=cat,
-            problem__challenge_level=5,
-            problem__is_published=True,
-            solved=True
-        ).count()
+        master_total = track.get('master_total', 0)
+        master_solved = solved_stat.get('master_solved', 0)
 
-        xp_earned = UserProgress.objects.filter(
-            user=user,
-            problem__category=cat,
-            problem__is_published=True,
-            solved=True
-        ).aggregate(total=Sum('xp_awarded'))['total'] or 0
-
-        total_xp = cat_problems.aggregate(total=Sum('xp_reward'))['total'] or 0
+        xp_earned = solved_stat.get('xp_earned', 0) or 0
+        total_xp = track.get('total_xp', 0) or 0
         remaining_problems = max(0, total - solved_count)
 
-        next_unsolved = cat_problems.exclude(id__in=solved_problem_ids).order_by('challenge_level', 'id').first()
+        next_unsolved = Problem.objects.filter(category=cat, is_published=True).exclude(id__in=solved_problem_ids).order_by('challenge_level', 'id').first()
 
         category_mastery.append({
             "id": cat.id,
@@ -183,7 +179,7 @@ def get_aggregated_dashboard_data(user) -> dict:
     )
     enrolled_projects = []
     for up in enrolled_projects_qs:
-        total_m = up.project.milestones.count()
+        total_m = len(up.project.milestones.all())
         completed_m = len(up.completed_milestones or [])
         progress_pct = round((completed_m / total_m) * 100, 1) if total_m > 0 else 0.0
         enrolled_projects.append({

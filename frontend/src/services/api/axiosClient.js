@@ -36,6 +36,20 @@ axiosClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve();
+    }
+  });
+  failedQueue = [];
+};
+
 // Response interceptor: unwraps data & handles 401s without hard reload loops
 axiosClient.interceptors.response.use(
   (response) => response.data,
@@ -54,12 +68,28 @@ axiosClient.interceptors.response.use(
 
     // On 401: only attempt silent refresh on protected data requests that haven't retried yet
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      if (isRefreshing) {
+        return new Promise(function(resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        }).then(() => {
+          return axiosClient(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
       try {
         await axiosClient.post(ENDPOINTS.AUTH.REFRESH);
+        processQueue(null);
         return axiosClient(originalRequest);
       } catch (refreshError) {
+        processQueue(refreshError);
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 

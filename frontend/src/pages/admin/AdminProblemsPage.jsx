@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import adminService from '../../services/api/adminService';
 import Spinner from '../../components/feedback/Spinner';
+import { useToast } from '../../components/feedback/Toast';
 
 export default function AdminProblemsPage() {
+  const toast = useToast();
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -127,7 +129,7 @@ export default function AdminProblemsPage() {
       setModalTab('general');
       setModalOpen(true);
     } catch (err) {
-      alert('Failed to load problem details: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Failed to load problem details: ' + (err?.response?.data?.detail || err.message));
     } finally {
       setLoading(false);
     }
@@ -140,19 +142,21 @@ export default function AdminProblemsPage() {
       });
       setProblems(problems.map(p => p.id === problem.id ? { ...p, is_published: updated.is_published } : p));
     } catch (err) {
-      alert('Failed to toggle publish status: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Failed to toggle publish status: ' + (err?.response?.data?.detail || err.message));
     }
   };
 
   const handleDelete = async (problem) => {
+    // TODO: replace with confirmation modal
     if (!window.confirm(`Are you sure you want to permanently delete challenge "${problem.title}"?`)) {
       return;
     }
     try {
       await adminService.deleteProblem(problem.id);
       setProblems(problems.filter(p => p.id !== problem.id));
+      toast.success('Challenge deleted successfully.');
     } catch (err) {
-      alert('Failed to delete problem: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Failed to delete problem: ' + (err?.response?.data?.detail || err.message));
     }
   };
 
@@ -162,13 +166,15 @@ export default function AdminProblemsPage() {
       setSaving(true);
       if (editingProblem) {
         await adminService.updateProblem(editingProblem.id, formData);
+        toast.success('Challenge updated successfully.');
       } else {
         await adminService.createProblem(formData);
+        toast.success('Challenge created successfully.');
       }
       setModalOpen(false);
       fetchProblems();
     } catch (err) {
-      alert('Failed to save challenge: ' + JSON.stringify(err?.response?.data || err.message));
+      toast.error('Failed to save challenge: ' + JSON.stringify(err?.response?.data || err.message));
     } finally {
       setSaving(false);
     }
@@ -176,11 +182,11 @@ export default function AdminProblemsPage() {
 
   const handleRunVerify = async () => {
     if (!editingProblem) {
-      alert('Please save the challenge first before running sandbox verification.');
+      toast.warning('Please save the challenge first before running sandbox verification.');
       return;
     }
     if (!verifyCode.trim()) {
-      alert('Please enter solution code to verify.');
+      toast.warning('Please enter solution code to verify.');
       return;
     }
 
@@ -191,8 +197,13 @@ export default function AdminProblemsPage() {
         language: formData.language
       });
       setVerifyResult(res);
+      if (res.all_passed) {
+        toast.success('All test cases passed!');
+      } else {
+        toast.warning('Some test cases failed.');
+      }
     } catch (err) {
-      alert('Verification failed: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Verification failed: ' + (err?.response?.data?.detail || err.message));
     } finally {
       setVerifying(false);
     }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import axiosClient from '../services/api/axiosClient';
 import { ENDPOINTS } from '../services/api/endpoints';
 
@@ -6,17 +6,18 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   const initAuth = useCallback(async () => {
+    setIsLoading(true);
     try {
       await axiosClient.get(ENDPOINTS.AUTH.CSRF);
       const data = await axiosClient.get(ENDPOINTS.AUTH.ME);
       setUser(data);
     } catch {
-      setUser(false);
+      setUser(null);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
@@ -24,7 +25,7 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, [initAuth]);
 
-  const login = async (credentials) => {
+  const login = useCallback(async (credentials) => {
     const res = await axiosClient.post(ENDPOINTS.AUTH.LOGIN, credentials);
     if (res?.user) {
       setUser(res.user);
@@ -33,18 +34,33 @@ export const AuthProvider = ({ children }) => {
       setUser(data);
     }
     return res;
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await axiosClient.post(ENDPOINTS.AUTH.LOGOUT);
     } finally {
-      setUser(false);
+      setUser(null);
     }
-  };
+  }, []);
 
-  const register = async (data) => {
+  const register = useCallback(async (data) => {
     const res = await axiosClient.post(ENDPOINTS.AUTH.REGISTER, data);
+    if (res?.user) {
+      setUser(res.user);
+    } else if (!res?.otp_required) {
+      try {
+        const meData = await axiosClient.get(ENDPOINTS.AUTH.ME);
+        setUser(meData);
+      } catch {
+        // Unverified user or pending OTP
+      }
+    }
+    return res;
+  }, []);
+
+  const verifyOTP = useCallback(async ({ email, otp }) => {
+    const res = await axiosClient.post(ENDPOINTS.AUTH.VERIFY_OTP, { email, otp });
     if (res?.user) {
       setUser(res.user);
     } else {
@@ -52,24 +68,44 @@ export const AuthProvider = ({ children }) => {
       setUser(meData);
     }
     return res;
-  };
+  }, []);
 
-  const refreshUser = async () => {
+  const resendOTP = useCallback(async ({ email }) => {
+    return await axiosClient.post(ENDPOINTS.AUTH.RESEND_OTP, { email });
+  }, []);
+
+  const refreshUser = useCallback(async () => {
     try {
       const data = await axiosClient.get(ENDPOINTS.AUTH.ME);
       setUser(data);
       return data;
     } catch {
-      setUser(false);
+      setUser(null);
       return null;
     }
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    user,
+    isLoading,
+    isAuthenticated: !!user,
+    login,
+    logout,
+    register,
+    verifyOTP,
+    resendOTP,
+    refreshUser
+  }), [user, isLoading, login, logout, register, verifyOTP, resendOTP, refreshUser]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register, refreshUser }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  return context;
+};

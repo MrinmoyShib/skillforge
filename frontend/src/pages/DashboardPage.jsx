@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { dashboardService } from '../services/api/dashboardService';
 import { useAuth } from '../context/AuthContext';
+import { getLanguageInfo } from '../utils/languageUtils';
 import Spinner from '../components/feedback/Spinner';
 
 export default function DashboardPage() {
@@ -84,48 +85,7 @@ export default function DashboardPage() {
     }
   };
 
-  const getLanguageInfo = (lang, item = null) => {
-    const raw = (
-      lang ||
-      item?.language ||
-      item?.slug ||
-      item?.category_slug ||
-      item?.problem_slug ||
-      ''
-    ).toLowerCase();
 
-    if (raw.includes('python') || raw.startsWith('py') || raw.includes('/py-') || raw.includes('py-')) {
-      return {
-        label: 'Python 3',
-        icon: '🐍',
-        badgeClass: 'bg-emerald-950/60 text-emerald-300 border-emerald-800/60',
-        gradientClass: 'from-emerald-500 to-teal-400',
-        accentText: 'text-emerald-400',
-        borderHover: 'hover:border-emerald-500/50',
-        bgHighlight: 'bg-emerald-950/30',
-      };
-    }
-    if (raw.includes('javascript') || raw.includes('node') || raw.startsWith('js') || raw.includes('/js-') || raw.includes('js-')) {
-      return {
-        label: 'JavaScript',
-        icon: '🟨',
-        badgeClass: 'bg-amber-950/60 text-amber-300 border-amber-800/60',
-        gradientClass: 'from-amber-500 to-yellow-400',
-        accentText: 'text-amber-400',
-        borderHover: 'hover:border-amber-500/50',
-        bgHighlight: 'bg-amber-950/30',
-      };
-    }
-    return {
-      label: 'C++',
-      icon: '⚡',
-      badgeClass: 'bg-cyan-950/60 text-cyan-300 border-cyan-800/60',
-      gradientClass: 'from-cyan-500 to-indigo-400',
-      accentText: 'text-cyan-400',
-      borderHover: 'hover:border-cyan-500/50',
-      bgHighlight: 'bg-cyan-950/30',
-    };
-  };
 
   const TRACK_SLUGS = ['python', 'javascript', 'cpp'];
   const trackCategories = category_mastery.filter(c => TRACK_SLUGS.includes(c.slug));

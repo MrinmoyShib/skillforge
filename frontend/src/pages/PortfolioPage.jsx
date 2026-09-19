@@ -4,6 +4,7 @@ import { portfolioService } from '../services/api/portfolioService';
 import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/feedback/Spinner';
 import { formatDate } from '../utils/formatters';
+import { sanitizeUrl } from '../utils/urlSanitizer';
 
 export default function PortfolioPage() {
   const { username } = useParams();
@@ -128,9 +129,9 @@ export default function PortfolioPage() {
                   </span>
                 )}
 
-                {user.github_url && (
+                {user.github_url && sanitizeUrl(user.github_url) && (
                   <a
-                    href={user.github_url}
+                    href={sanitizeUrl(user.github_url)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800"
@@ -139,9 +140,9 @@ export default function PortfolioPage() {
                   </a>
                 )}
 
-                {user.linkedin_url && (
+                {user.linkedin_url && sanitizeUrl(user.linkedin_url) && (
                   <a
-                    href={user.linkedin_url}
+                    href={sanitizeUrl(user.linkedin_url)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800"
@@ -150,9 +151,9 @@ export default function PortfolioPage() {
                   </a>
                 )}
 
-                {user.twitter_url && (
+                {user.twitter_url && sanitizeUrl(user.twitter_url) && (
                   <a
-                    href={user.twitter_url}
+                    href={sanitizeUrl(user.twitter_url)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800"
@@ -161,9 +162,9 @@ export default function PortfolioPage() {
                   </a>
                 )}
 
-                {user.website_url && (
+                {user.website_url && sanitizeUrl(user.website_url) && (
                   <a
-                    href={user.website_url}
+                    href={sanitizeUrl(user.website_url)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800"

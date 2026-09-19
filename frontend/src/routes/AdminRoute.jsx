@@ -4,9 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/feedback/Spinner';
 
 export default function AdminRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#0b0f19]">
         <Spinner size="lg" />

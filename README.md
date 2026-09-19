@@ -2,144 +2,169 @@
 
 [![CI / Quality Gates](https://github.com/MrinmoyShib/skillforge/actions/workflows/ci.yml/badge.svg)](https://github.com/MrinmoyShib/skillforge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)]()
-[![Django 5.2 LTS](https://img.shields.io/badge/Django-5.2_LTS-092E20?logo=django&logoColor=white)]()
-[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)]()
-[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)]()
-[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)]()
-[![Redis 7](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)]()
-[![Judge0 CE](https://img.shields.io/badge/Judge0_CE-v1.13.1-black?logo=docker&logoColor=white)]()
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
+[![Django 5.2 LTS](https://img.shields.io/badge/Django-5.2_LTS-092E20?logo=django&logoColor=white)](https://djangoproject.com)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Redis 7](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](https://redis.io)
+[![Judge0 CE](https://img.shields.io/badge/Judge0_CE-v1.13.1-black?logo=docker&logoColor=white)](https://judge0.com)
+[![OpenAPI 3.0](https://img.shields.io/badge/OpenAPI-3.0-85EA2D?logo=openapiinitiative&logoColor=black)](http://localhost:8000/api/docs/swagger/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-> **SkillForge** is an enterprise-grade competitive programming, skill assessment, and developer learning platform with zero external subscription costs ($0 budget). It features real-time sandboxed code execution, an in-browser Monaco IDE, multi-language tracks, guided engineering projects, anti-farming progression mechanics, and a dual admin command center with an in-studio sandbox verification runner.
+> **SkillForge** is an enterprise-grade competitive programming, skill assessment, and developer learning platform engineered for $0 external subscription costs. It features real-time sandboxed code execution, an in-browser Monaco IDE, multi-language tracks (**Python 3**, **JavaScript**, and **C++**), guided engineering projects, anti-farming progression mechanics, secure OTP authentication, and a dual admin command center with an in-studio sandbox verification runner.
 
 ---
 
 ## 📑 Table of Contents
 
-- [Key Features](#-key-features)
+- [Core Features](#-core-features)
+- [Curriculum & Track Matrix](#-curriculum--track-matrix)
 - [System Architecture](#-system-architecture)
 - [Tech Stack](#-tech-stack)
 - [Quick Start (Docker)](#-quick-start-docker)
 - [Default Login Credentials](#-default-login-credentials)
-- [Service URLs & Ports](#-service-urls--ports)
+- [Service URLs & Port Map](#-service-urls--port-map)
+- [Environment Variables Reference](#-environment-variables-reference)
+- [REST API Reference](#-rest-api-reference)
 - [Repository Structure](#-repository-structure)
 - [Development vs. Production](#-development-vs-production)
 - [Testing & Quality Gates](#-testing--quality-gates)
-- [API Documentation](#-api-documentation)
+- [Security & Governance](#-security--governance)
 - [License](#-license)
 
 ---
 
-## ⚡ Key Features
+## ⚡ Core Features
 
-### 1. 🐍 Multi-Language Tracks & 300 Curated Challenges
-- **3 Dedicated Tracks**: Python 3 (`python`), JavaScript (`javascript`), and C++ (`cpp`).
-- **100 Challenges Per Track (300 Total)**:
-  - **Level 1 (Apprentice)**: Syntax, control flow, math, basic strings, loops.
-  - **Level 2 (Scout)**: Two-pointers, hash maps, prefix sum, binary search.
-  - **Level 3 (Craftsman)**: Intervals, sliding window, stacks/queues, backtracking, dynamic programming.
-  - **Level 4 (Architect)**: Heaps, BST, trees, graph BFS/DFS, topological sort, LCS.
-  - **Level 5 (Grandmaster)**: Trapping rain water, LIS, shortest paths, bitmask DP, N-Queens.
-- **1,200 Test Cases**: Sample visible test cases and private hidden evaluation test cases.
+### 1. 🐍 Multi-Language Tracks (Python, JavaScript, C++)
+- **3 Dedicated Tracks**:
+  - **Python 3 (`python`)**: Idiomatic Python, data structures, recursion, list comprehensions, backend algorithmic patterns.
+  - **JavaScript (`javascript`)**: Modern ES6+, functional array transformations, asynchronous flow, web algorithmic logic.
+  - **C++ (`cpp`)**: High-performance systems programming, STL containers, pointer manipulation, and competitive programming.
+- **300 Curated Challenges (100 per track)**:
+  - Spans 5 calibrated progression tiers from basic syntax to grandmaster algorithms.
+- **1,200 Test Cases**:
+  - Visible sample test cases for rapid in-browser testing.
+  - Hidden evaluation test cases with anti-leak protection (strictly hidden from student API responses).
 
 ### 2. 🛡️ Isolated Sandboxed Execution (Judge0 CE)
-- **Self-Hosted Judge0 CE**: Linux `isolate` sandboxing using kernel cgroups, memory limits, and strict CPU time caps.
-- **Asynchronous Evaluation**: Dispatched via Celery workers backed by Redis, with resilience fallback (`DevFallbackEngine`) for offline environments.
-- **Anti-Leak Protection**: Hidden evaluation test cases are strictly masked from student API responses.
+- **Self-Hosted Linux `isolate` Sandbox**: Evaluates untrusted code in hardened Linux cgroups with strict memory, process, and CPU wall-clock limits.
+- **Complete Network Isolation**: Student submissions cannot initiate external outbound or inbound network connections.
+- **Asynchronous Processing**: Dispatched via Celery workers backed by Redis, polling Judge0 until terminal verdicts (`ACCEPTED`, `WRONG_ANSWER`, `TIME_LIMIT_EXCEEDED`, `RUNTIME_ERROR`, `COMPILATION_ERROR`).
+- **Resilience Engine**: Built-in fallback protection during offline development or maintenance modes.
 
 ### 3. 💻 In-Browser Monaco IDE & Live Verdicts
-- Full-featured code editor powered by **Monaco Editor** (VS Code engine).
-- Integrated test case drawer with custom inputs, sample execution, and real-time execution telemetry (runtime in ms, memory in KB).
-- Formatted compile error and runtime error diagnostics.
+- Powered by the **Monaco Editor** (the engine behind VS Code) with syntax highlighting, automatic indentation, and keyboard shortcuts.
+- Interactive test case drawer supporting custom inputs, sample execution, and real-time execution telemetry (runtime in ms, memory in KB).
+- Formatted compile error and runtime diagnostics rendered cleanly in the console output pane.
 
-### 4. 📈 Progression & Anti-Farming XP Engine
-- **Progression Tiers**: Apprentice, Scout, Craftsman, Architect, Grandmaster.
+### 4. 📈 Anti-Farming XP Engine & Progression Tiers
+- **Calibrated XP Formula**: Earn XP proportional to challenge difficulty (Level 1: 50 XP to Level 5: 300 XP).
 - **Anti-Farming DB Protection**: Composite database uniqueness constraints prevent users from repeatedly farming XP on already-solved problems.
-- **Activity Audit Trail**: Every solve, XP delta, and level-up is immutably logged with timestamps.
+- **Activity Audit Trail**: Every submission, solve verdict, XP delta, and level-up is immutably logged with timestamps.
+- **5 Mastery Levels**: *Apprentice* → *Scout* → *Craftsman* → *Architect* → *Grandmaster*.
 
-### 5. 📊 Live Telemetry Dashboard & Track Mastery
-- Real-time developer metrics: Solved problems, remaining challenges, and points earned per language track.
-- Direct deep-links to the next recommended unsolved challenge.
-- Recent submissions audit stream with status badges.
+### 5. 🛠️ Guided Engineering Projects & Labs
+- Step beyond one-off algorithmic puzzles into multi-milestone software engineering projects.
+- Projects include building CLI utilities, key-value stores, caching layers, and parsers.
+- In-workspace milestone test harnesses verify user implementations step-by-step before unlocking subsequent milestones.
 
-### 6. 🏆 Achievements & Dense-Rank Global Leaderboard
-- **Automated Achievement Engine**: Unlocks platform badges based on solve milestones and track completion.
-- **Dense-Rank Leaderboard**: Accurate tie-handling dense ranking with a Top 3 Podium and sticky user placement card.
+### 6. 🔐 Secure OTP Authentication & Email Verification
+- **Email OTP Verification**: 6-digit one-time passcode verification on registration via SMTP (Gmail, Brevo, or local console).
+- **Secure Email Change**: Re-authenticates current password, dispatches confirmation OTP to the new email, and sends a security alert to the previous email.
+- **JWT in HttpOnly Cookies**: Access and refresh tokens stored in `HttpOnly`, `SameSite=Lax` cookies to prevent XSS token theft, with automatic silent refresh.
 
-### 7. 🛠️ Guided Engineering Projects & Labs
-- Multi-milestone guided labs designed to simulate real-world software engineering tasks.
-- In-workspace milestone test harnesses verifying developer code step-by-step.
-- Enrolled project progress tracking integrated into the live student dashboard.
+### 7. 🏆 Achievements & Dense-Rank Leaderboard
+- **Automated Achievement System**: Automatically unlocks badges based on solve counts, language track milestones, and streaks.
+- **Dense-Rank Global Leaderboard**: Fair tie-handling dense ranking with a Top 3 Podium and sticky user placement card.
 
-### 8. 👤 Developer Profile & Account Settings
-- **Industry-Standard Settings (`/settings`)**: Avatar picker (preset developer avatars + custom image URLs), editable display name, username, email address, contact phone number, location, and bio.
-- **Security Tab**: Password change with current-password validation and automatic JWT cookie rotation.
-- **Public Developer Portfolio (`/portfolio/:username`)**: Multi-channel sharing (WhatsApp, LinkedIn, Twitter/X, Gmail, copy link).
+### 8. 👤 Developer Profile & Recruiter-Ready Portfolio
+- **Customizable Profile (`/settings`)**: Avatar picker, bio, skills, location, and social links with built-in URL sanitization against XSS.
+- **Public Portfolio (`/portfolio/:username`)**: Recruiter-ready showcase displaying verified solve statistics, completed projects, and track mastery breakdown.
+- **Multi-Channel Social Sharing**: Instant share buttons for LinkedIn, Twitter/X, WhatsApp, Gmail, and one-click link copying.
 
-### 9. 🎛️ Dual Enterprise Admin Backoffice (Options A + C)
-- **Option A (React Command Center at `/admin/*`)**:
+### 9. 🎛️ Dual Enterprise Admin Backoffice
+- **React Command Center (`/admin/*`)**:
   - Protected by `AdminRoute` (enforces `is_staff`).
   - **Cluster Telemetry**: Real-time heartbeat checks for PostgreSQL, Redis, and Judge0 sandbox.
-  - **Problem Studio**: Full CRUD with Markdown editor and **In-Studio Sandbox Verification Runner** (`POST /api/v1/admin/problems/:id/verify/`) testing author solutions against test cases before publishing!
+  - **Problem Studio**: Full CRUD with Markdown editor and **In-Studio Sandbox Verification Runner** (`POST /api/v1/admin/problems/:id/verify/`) testing author solutions against test cases before publishing.
   - **Guided Projects Curator**: Author projects, milestones, and automated test harnesses.
   - **Developer Moderation**: Searchable directory, student intel drilldown, staff privilege toggles, and atomic manual XP adjustments.
   - **Submissions Audit**: Global real-time submission stream with code inspector and one-click re-judging.
-- **Option C (Enhanced Django Admin at `http://localhost:8000/admin/`)**:
+- **Django Admin (`http://localhost:8000/admin/`)**:
   - Inlined `TestCaseInline` and `ProjectMilestoneInline` for direct database management.
   - Bulk actions: `publish_selected` and `unpublish_selected`.
+
+---
+
+## 📊 Curriculum & Track Matrix
+
+SkillForge features **300 total challenges** evenly divided across 3 language tracks:
+
+| Tier | Level Name | Problems / Track | Total Problems | XP / Problem | Core Topics Covered |
+|:---:|:---:|:---:|:---:|:---:|:---|
+| **Level 1** | Apprentice | 20 | 60 | 50 XP | Variables, I/O, conditionals, arithmetic, loops, basic math |
+| **Level 2** | Scout | 20 | 60 | 75 XP | Two-pointers, hash maps, prefix sums, binary search, basic strings |
+| **Level 3** | Craftsman | 20 | 60 | 100 XP | Sliding window, intervals, stacks, queues, recursion, basic DP |
+| **Level 4** | Architect | 20 | 60 | 150 XP | Trees, BST, graph BFS/DFS, topological sort, heaps, LCS |
+| **Level 5** | Grandmaster | 20 | 60 | 250 XP | Dynamic programming, bitmask DP, shortest paths, advanced graphs |
+| **Total** | — | **100** | **300** | — | **1,200 Test Cases** |
 
 ---
 
 ## 🏗️ System Architecture
 
 ```
-                                  [ User Traffic (Port 80 / 5173) ]
-                                                  │
-                                                  ▼
-                      ┌───────────────────────────────────────────────────────┐
-                      │              Nginx Reverse Proxy / Vite               │
-                      │  - SSL Termination / Security Headers                 │
-                      │  - Gzip / Brotli Compression                          │
-                      │  - Static Asset Cache (1 Year Immutable)              │
-                      │  - Client-Side SPA Routing (try_files)                │
-                      └───────────────┬───────────────────────┬───────────────┘
-                                      │                       │
-                      Static / Cached Assets       /api/* and /admin/*
-                                      │                       │
-                                      ▼                       ▼
-                        ┌────────────────────────┐  ┌───────────────────┐
-                        │   Compiled React 19    │  │   Gunicorn / DRF  │
-                        │   SPA (/usr/share/     │  │   Django 5.2 LTS  │
-                        │     nginx/html)        │  │   (3 Workers)     │
-                        └────────────────────────┘  └─────────┬─────────┘
-                                                              │
-                                                   ┌──────────┴──────────┐
-                                                   ▼                     ▼
-                                              PostgreSQL 16           Redis 7
-                                                                         │
-                                                                         ▼
-                                                                   Celery Worker
-                                                                         │
-                                                                         ▼
-                                                                     Judge0 CE
-                                                                  (isolate sandbox)
+                                  [ User Browser (Port 80 / 5173) ]
+                                                   │
+                                                   ▼
+                       ┌───────────────────────────────────────────────────────┐
+                       │              Nginx Reverse Proxy / Vite               │
+                       │  - SSL Termination & Security Headers (CSP, HSTS)     │
+                       │  - Gzip Compression & Static Asset Cache (1 Year)     │
+                       │  - Client-Side SPA Routing (try_files fallback)       │
+                       │  - Rate Limiting Zones (10r/m auth, 30r/m api)        │
+                       └───────────────┬───────────────────────┬───────────────┘
+                                       │                       │
+                       Static / Cached Assets       /api/v1/* and /admin/*
+                                       │                       │
+                                       ▼                       ▼
+                         ┌────────────────────────┐  ┌───────────────────┐
+                         │   Compiled React 19    │  │   Gunicorn / DRF  │
+                         │   SPA (Tailwind v4)    │  │   Django 5.2 LTS  │
+                         │   (/usr/share/nginx)   │  │   (3 Workers)     │
+                         └────────────────────────┘  └─────────┬─────────┘
+                                                               │
+                                                    ┌──────────┴──────────┐
+                                                    ▼                     ▼
+                                               PostgreSQL 16           Redis 7
+                                               (Persistent)       (Broker & Cache)
+                                                                          │
+                                                                          ▼
+                                                                    Celery Worker
+                                                                          │
+                                                                          ▼
+                                                                      Judge0 CE
+                                                                   (isolate sandbox)
 ```
 
 ---
 
 ## 💻 Tech Stack
 
-| Layer | Technology | Version | Rationale |
+| Layer | Technology | Version | Purpose & Rationale |
 |---|---|---|---|
-| **Backend Framework** | Django + DRF | 5.2 LTS / 3.15 | Rock-solid ORM, built-in security, standard service/selector architecture |
-| **Frontend Framework** | React + Vite | 19.0 / 6.0 | Latest React concurrency, blazing fast HMR with Vite |
-| **Styling** | Tailwind CSS | v4.0 | Zero-config CSS-first engine, dark cyber theme (`#0b0f19`, `#131b2e`) |
-| **Code Editor** | Monaco Editor | 4.7 | VS Code in-browser editing experience with syntax highlighting |
+| **Backend Framework** | Django + DRF | 5.2 LTS / 3.15 | Robust ORM, built-in security, Service & Selector design pattern |
+| **Frontend Framework** | React + Vite | 19.0 / 6.0 | Modern concurrent React, ultra-fast Hot Module Replacement (HMR) |
+| **Styling** | Tailwind CSS | v4.0 | CSS-first zero-config styling with dark cyber theme (`#0b0f19`, `#131b2e`) |
+| **Code Editor** | Monaco Editor | 4.7 | Desktop VS Code in-browser experience with multi-language syntax support |
 | **Code Execution** | Judge0 CE | 1.13.1 | Self-hosted, IOI-grade sandboxing using Linux `isolate` cgroups ($0 budget) |
-| **Database** | PostgreSQL | 16-alpine | ACID-compliant relational database with JSONField support |
-| **Cache & Broker** | Redis | 7-alpine | In-memory store for Celery task dispatch and fast session caching |
-| **Task Queue** | Celery | 5.4+ | Distributed asynchronous submission evaluation and Judge0 polling |
-| **Auth** | SimpleJWT | 5.5 | `HttpOnly`, `SameSite=Lax` cookies with silent token refresh (XSS protection) |
+| **Database** | PostgreSQL | 16-alpine | ACID-compliant relational store with JSONField and composite constraints |
+| **Cache & Broker** | Redis | 7-alpine | In-memory message broker for Celery and high-speed query caching |
+| **Task Queue** | Celery | 5.4+ | Distributed asynchronous submission grading and Judge0 status polling |
+| **Authentication** | SimpleJWT | 5.5 | `HttpOnly`, `SameSite=Lax` cookies with token rotation and blacklisting |
+| **Email Delivery** | Django SMTP | Built-in | OTP verification emails via Gmail, Brevo, or console backend |
 
 ---
 
@@ -155,35 +180,34 @@ git clone https://github.com/MrinmoyShib/skillforge.git
 cd skillforge
 ```
 
-### 2. Configure Environment
-Copy the example environment file:
+### 2. Configure Environment Variables
+Copy the example configuration file:
 ```bash
 cp .env.example .env
 ```
-*(The default values in `.env.example` work out-of-the-box for local development).*
+*(The default values in `.env.example` work out-of-the-box for local Docker development).*
 
-### 3. Start the Application Stack
+### 3. Launch the Application Stack
 ```bash
 # Start PostgreSQL, Redis, Django API, Celery Worker, and React Frontend
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-### 4. Start the Judge0 Code Execution Sandbox
+### 4. Launch the Judge0 Code Execution Sandbox
 ```bash
 # Start Judge0 Server, Worker, PostgreSQL, and Redis (privileged isolate sandbox)
 docker compose -f docker/docker-compose.judge0.yml up -d
 ```
 
-### 5. Seed Initial Data
-Run database migrations and seed users and the 300-problem curriculum:
+### 5. Apply Migrations & Seed Initial Curriculum
 ```bash
-# Apply migrations
+# Run database migrations
 docker exec -it skillforge-django python manage.py migrate
 
-# Seed Admin and Student accounts
+# Seed default Admin and Student accounts
 docker exec -it skillforge-django python manage.py seed_dev_users
 
-# Seed the 300 problems and 1,200 test cases
+# Seed all 300 problems and 1,200 test cases
 docker exec -it skillforge-django python manage.py seed_problems
 ```
 
@@ -198,17 +222,72 @@ docker exec -it skillforge-django python manage.py seed_problems
 
 ---
 
-## 🌐 Service URLs & Ports
+## 🌐 Service URLs & Port Map
 
 | Service | URL | Description |
 |---|---|---|
 | **SkillForge Web App** | [http://localhost:5173](http://localhost:5173) | Main React 19 Frontend (Student platform & Dashboard) |
-| **Admin Command Center** | [http://localhost:5173/admin](http://localhost:5173/admin) | Cyber React Admin Studio (Requires `admin` login) |
-| **Django Direct DB Admin** | [http://localhost:8000/admin/](http://localhost:8000/admin/) | Django Model Administration (Option C) |
-| **REST API Base** | [http://localhost:8000/api/v1/](http://localhost:8000/api/v1/) | Backend REST API endpoints |
+| **Admin Command Center** | [http://localhost:5173/admin](http://localhost:5173/admin) | Cyber React Admin Studio (Requires staff credentials) |
+| **Django Direct DB Admin** | [http://localhost:8000/admin/](http://localhost:8000/admin/) | Django Model Administration |
+| **REST API Base** | [http://localhost:8000/api/v1/](http://localhost:8000/api/v1/) | Backend REST API root |
 | **Swagger API Docs** | [http://localhost:8000/api/docs/swagger/](http://localhost:8000/api/docs/swagger/) | Interactive OpenAPI 3 / Swagger documentation |
-| **Redoc API Docs** | [http://localhost:8000/api/docs/redoc/](http://localhost:8000/api/docs/redoc/) | ReDoc API documentation viewer |
+| **Redoc API Docs** | [http://localhost:8000/api/docs/redoc/](http://localhost:8000/api/docs/redoc/) | ReDoc structured API reference |
 | **Judge0 Sandbox API** | [http://localhost:2358](http://localhost:2358) | Self-hosted Judge0 CE code execution server |
+
+---
+
+## ⚙️ Environment Variables Reference
+
+| Variable | Default Value | Description |
+|---|---|---|
+| `DJANGO_SETTINGS_MODULE` | `config.settings.dev` | Active Django settings module (`dev` or `prod`) |
+| `SECRET_KEY` | `dev-insecure-key-...` | Django cryptographic signing key |
+| `DEBUG` | `True` | Enable/disable debug mode (MUST be `False` in prod) |
+| `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated list of valid host headers |
+| `DATABASE_URL` | `postgres://...:5432/skillforge` | PostgreSQL connection string |
+| `CELERY_BROKER_URL` | `redis://redis:6379/0` | Redis connection URL for Celery message broker |
+| `CELERY_RESULT_BACKEND` | `redis://redis:6379/0` | Redis connection URL for Celery task results |
+| `JUDGE0_URL` | `http://judge0-server:2358` | Internal Docker URL for Judge0 CE server |
+| `JUDGE0_AUTH_TOKEN` | `skillforge-judge0-dev-token` | Secret authentication token for Judge0 API |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Allowed origins for cross-origin resource sharing |
+| `CSRF_TRUSTED_ORIGINS` | `http://localhost:5173` | Trusted origins for CSRF protection |
+| `EMAIL_BACKEND` | `django.core.mail.backends.smtp.EmailBackend` | Email backend (or `.console.EmailBackend` for dev) |
+| `EMAIL_HOST` | `smtp.gmail.com` | SMTP host server |
+| `EMAIL_PORT` | `587` | SMTP port (typically 587 for TLS) |
+| `EMAIL_USE_TLS` | `True` | Enable TLS encryption for outbound email |
+| `EMAIL_HOST_USER` | `""` | SMTP sender username / email address |
+| `EMAIL_HOST_PASSWORD` | `""` | SMTP app password / API key |
+| `DEFAULT_FROM_EMAIL` | `SkillForge <noreply@skillforge.dev>` | From address on outbound notification emails |
+| `VITE_API_BASE_URL` | `http://localhost:8000/api/v1` | Frontend API base endpoint URL |
+
+---
+
+## 📡 REST API Reference
+
+| Endpoint | Method | Auth | Description |
+|---|:---:|:---:|---|
+| **`/auth/register/`** | `POST` | Public | Register new developer and dispatch 6-digit email OTP |
+| **`/auth/verify-otp/`** | `POST` | Public | Verify registration OTP and activate user account |
+| **`/auth/resend-otp/`** | `POST` | Public | Request a fresh verification OTP |
+| **`/auth/login/`** | `POST` | Public | Authenticate and issue `HttpOnly` JWT cookie |
+| **`/auth/logout/`** | `POST` | Authenticated | Invalidate JWT cookies and blacklist refresh token |
+| **`/auth/token/refresh/`** | `POST` | Cookie | Silent rotation of expired access token |
+| **`/auth/me/`** | `GET, PATCH` | Authenticated | Retrieve / update current user profile |
+| **`/auth/change-password/`** | `POST` | Authenticated | Change password and invalidate outstanding tokens |
+| **`/auth/request-email-change/`**| `POST` | Authenticated | Re-auth password and send OTP to new email |
+| **`/auth/confirm-email-change/`**| `POST` | Authenticated | Verify OTP, update email, and alert old email |
+| **`/problems/`** | `GET` | Public | List curated problems with track/tier filters |
+| **`/problems/:id/`** | `GET` | Public | Problem detail with sample test cases and boilerplate |
+| **`/submissions/`** | `POST` | Authenticated | Submit code for sandboxed Judge0 evaluation |
+| **`/submissions/:id/`** | `GET` | Authenticated | Poll execution verdict and telemetry |
+| **`/projects/`** | `GET, POST` | Authenticated | Browse guided projects and enroll |
+| **`/projects/:id/workspace/`** | `GET, POST` | Authenticated | Project workspace and milestone test runner |
+| **`/leaderboard/`** | `GET` | Public | Global dense-rank leaderboard |
+| **`/portfolio/:username/`** | `GET` | Public | Public developer portfolio and verified statistics |
+| **`/dashboard/`** | `GET` | Authenticated | Live developer telemetry and track mastery stats |
+| **`/admin/analytics/`** | `GET` | Staff | Platform health and cluster telemetry |
+| **`/admin/problems/`** | `GET, POST` | Staff | Problem studio CRUD |
+| **`/admin/problems/:id/verify/`** | `POST` | Staff | Pre-publish sandbox solution verification runner |
 
 ---
 
@@ -217,13 +296,16 @@ docker exec -it skillforge-django python manage.py seed_problems
 ```text
 SkillForge/
 ├── .github/
-│   └── workflows/
-│       └── ci.yml              # GitHub Actions CI quality gates (pytest + build)
+│   ├── ISSUE_TEMPLATE/         # Bug report & feature request templates
+│   ├── workflows/
+│   │   └── ci.yml              # GitHub Actions CI quality gates (pytest + build)
+│   ├── dependabot.yml          # Automated dependency updates (pip, npm, docker)
+│   └── pull_request_template.md # PR checklist and guidelines
 ├── backend/                    # Django 5.2 LTS Backend
 │   ├── apps/
-│   │   ├── accounts/           # Auth, JWT HttpOnly cookies, settings & user profiles
+│   │   ├── accounts/           # Auth, OTP, JWT cookies, profile settings
 │   │   ├── achievements/       # Badges & automated achievement unlock engine
-│   │   ├── admin_api/          # Admin backoffice, telemetry, problem & project studio
+│   │   ├── admin_api/          # Admin backoffice, telemetry, problem studio
 │   │   ├── core/               # Shared models, exceptions, pagination
 │   │   ├── dashboard/          # Student telemetry, track mastery & recent activity
 │   │   ├── leaderboard/        # Dense rank global leaderboard & top 3 podium
@@ -239,14 +321,15 @@ SkillForge/
 │   └── requirements/           # base.txt, dev.txt, prod.txt
 ├── frontend/                   # React 19 + Vite SPA (Tailwind CSS v4)
 │   ├── src/
-│   │   ├── components/         # Layouts, UI primitives, Monaco editor, modals
+│   │   ├── components/         # Layouts, UI primitives, Monaco editor, Toast, Modals
 │   │   ├── context/            # AuthContext with silent token refresh
 │   │   ├── pages/              # Dashboard, Challenges, Projects, Leaderboard, Admin, Settings
-│   │   ├── routes/             # AppRoutes, ProtectedRoute, AdminRoute
+│   │   ├── routes/             # AppRoutes (lazy loaded), ProtectedRoute, AdminRoute
 │   │   ├── services/           # Axios client & domain API services
-│   │   └── utils/              # Formatters, constants, helpers
+│   │   └── utils/              # Formatters, constants, language utilities
 │   ├── Dockerfile              # Development Dockerfile
-│   └── Dockerfile.prod         # Multi-stage production Dockerfile (Nginx + static build)
+│   ├── Dockerfile.prod         # Multi-stage production Dockerfile (Nginx + static build)
+│   └── nginx.conf              # Production Nginx SPA routing & security headers
 ├── docker/
 │   ├── docker-compose.yml      # Development Compose stack
 │   ├── docker-compose.prod.yml # Production Compose stack (Gunicorn + Nginx)
@@ -256,8 +339,12 @@ SkillForge/
 │       └── nginx.prod.conf     # Production Nginx reverse proxy & caching configuration
 ├── docs/
 │   └── architecture.md         # Key architecture decisions and rationale
+├── CONTRIBUTING.md             # Developer setup and contribution guidelines
+├── SECURITY.md                 # Vulnerability reporting and disclosure policy
+├── CHANGELOG.md                # Keep a Changelog version history
 ├── .env.example                # Development environment template
 ├── .env.prod.example           # Production environment template
+├── .gitattributes              # Line endings enforcement (LF for shell/docker)
 ├── .gitignore
 └── README.md
 ```
@@ -274,7 +361,10 @@ docker compose -f docker/docker-compose.judge0.yml up -d
 ```
 
 ### Running in Production Mode
-In production mode, Django runs under **Gunicorn WSGI** (3 workers, 2 threads per worker) with `DEBUG=False` and strict security headers, behind an **Nginx reverse proxy** serving the compiled React 19 SPA directly from memory with gzip compression and 1-year immutable caching for `/assets/`:
+In production mode:
+- Django runs under **Gunicorn WSGI** (3 workers, 2 threads per worker) with `DEBUG=False` and strict security headers (`SECURE_SSL_REDIRECT`, `HSTS`).
+- The React 19 frontend is compiled into static assets and served via an **Nginx reverse proxy** with gzip compression, `try_files` SPA routing, and 1-year immutable caching for `/assets/`.
+- Rate limiting zones are enforced on `/api/v1/auth/` (10 req/min) and general API routes (30 req/min).
 ```bash
 # 1. Copy production environment variables
 cp .env.prod.example .env.prod
@@ -288,35 +378,36 @@ docker compose -f docker/docker-compose.prod.yml up -d --build
 
 ## 🧪 Testing & Quality Gates
 
-The codebase includes an extensive automated test suite covering authentication, permissions, anti-farming constraints, problem authoring, sandbox verification, leveling, and admin moderation:
+SkillForge maintains an extensive automated test suite covering authentication, permissions, anti-farming constraints, problem authoring, sandbox verification, leveling, and admin moderation:
 
-### Running Backend Unit Tests in Docker
+### Running Backend Unit Tests
 ```bash
 docker exec -it skillforge-django pytest -v
 ```
-**Result**: **68 / 68 tests passing** across all apps.
+**Status**: **68 / 68 tests passing** across all apps.
 
 ### Verifying Frontend Production Build
 ```bash
 docker exec -it skillforge-frontend npm run build
 ```
-**Result**: Clean compilation with **0 errors**.
+**Status**: Clean compilation with **0 errors**.
 
 ### Automated GitHub Actions CI
 On every `push` and `pull_request` to `main`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) automatically:
 1. Provisions PostgreSQL 16 and Redis 7 service containers in GitHub Actions.
-2. Executes Django system checks and migrations.
-3. Runs the full 68-test `pytest` suite with code coverage.
-4. Performs a clean `npm ci` and verifies the frontend production build.
+2. Executes Django system checks and database migrations.
+3. Runs security scans via `pip-audit` and `npm audit`.
+4. Runs the full 68-test `pytest` suite with code coverage.
+5. Performs a clean `npm ci` and verifies the frontend production build.
 
 ---
 
-## 📖 API Documentation
+## 🛡️ Security & Governance
 
-SkillForge includes automated OpenAPI 3 schema generation via `drf-spectacular`:
-- **Swagger UI**: Visit [http://localhost:8000/api/docs/swagger/](http://localhost:8000/api/docs/swagger/) to interactively test endpoints.
-- **ReDoc**: Visit [http://localhost:8000/api/docs/redoc/](http://localhost:8000/api/docs/redoc/) for structured API reference documentation.
-- **OpenAPI Schema**: Download raw OpenAPI 3 JSON schema at `http://localhost:8000/api/schema/`.
+- **Vulnerability Reporting**: See [SECURITY.md](SECURITY.md) for our responsible disclosure policy and contact details.
+- **Contributing Guidelines**: See [CONTRIBUTING.md](CONTRIBUTING.md) for branch naming conventions, commit formats, and coding standards.
+- **Changelog**: Detailed release notes and version history are documented in [CHANGELOG.md](CHANGELOG.md).
+- **Architecture Decisions**: Deep architectural context and design rationale are available in [docs/architecture.md](docs/architecture.md).
 
 ---
 

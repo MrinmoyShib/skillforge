@@ -20,7 +20,8 @@ def admin_client(db):
         username="testadmin",
         email="admin@test.local",
         password="AdminPassword123!",
-        display_name="Admin"
+        display_name="Admin",
+        is_active=True
     )
     admin_user.is_staff = True
     admin_user.save(update_fields=['is_staff'])
@@ -37,7 +38,8 @@ def student_client(db):
         username="teststudent",
         email="student@test.local",
         password="StudentPassword123!",
-        display_name="Student"
+        display_name="Student",
+        is_active=True
     )
     access_token, _ = user_generate_tokens(user=student_user)
     client.cookies['access_token'] = access_token

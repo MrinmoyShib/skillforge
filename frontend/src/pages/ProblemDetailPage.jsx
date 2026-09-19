@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router';
+import Editor from '@monaco-editor/react';
 import { problemService } from '../services/api/problemService';
 import { submissionService } from '../services/api/submissionService';
 import { useAuth } from '../context/AuthContext';
+import { getLanguageInfo } from '../utils/languageUtils';
 import Spinner from '../components/feedback/Spinner';
+import { useToast } from '../components/feedback/Toast';
 
 export default function ProblemDetailPage() {
+  const toast = useToast();
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
@@ -90,8 +94,18 @@ export default function ProblemDetailPage() {
 
       setActiveSubmission(initialSub);
 
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      let pollCount = 0;
+
       // Poll until terminal status reached
       pollIntervalRef.current = setInterval(async () => {
+        pollCount++;
+        if (pollCount > 60) {
+          clearInterval(pollIntervalRef.current);
+          setIsEvaluating(false);
+          return;
+        }
+
         try {
           const updated = await submissionService.getSubmission(initialSub.id);
           setActiveSubmission(updated);
@@ -116,7 +130,7 @@ export default function ProblemDetailPage() {
     } catch (err) {
       setIsEvaluating(false);
       const msg = err?.response?.data?.detail || 'Failed to dispatch submission.';
-      alert(msg);
+      toast.error(msg);
     }
   };
 
@@ -173,43 +187,7 @@ export default function ProblemDetailPage() {
     }
   };
 
-  const getLanguageInfo = (lang, prob = null) => {
-    const raw = (
-      lang ||
-      prob?.language ||
-      prob?.category?.slug ||
-      (prob?.slug?.startsWith('py-') ? 'python' : '') ||
-      (prob?.slug?.startsWith('js-') ? 'javascript' : '') ||
-      (prob?.slug?.startsWith('cpp-') ? 'cpp' : '') ||
-      ''
-    ).toLowerCase();
 
-    if (raw.includes('python') || raw.startsWith('py')) {
-      return {
-        label: 'Python 3.8+',
-        icon: '🐍',
-        badgeClass: 'bg-emerald-950/60 text-emerald-300 border-emerald-800/60',
-        filename: 'solution.py',
-        placeholder: 'Write your Python 3 solution here...',
-      };
-    }
-    if (raw.includes('javascript') || raw.includes('node') || raw.startsWith('js')) {
-      return {
-        label: 'JavaScript (Node.js)',
-        icon: '🟨',
-        badgeClass: 'bg-amber-950/60 text-amber-300 border-amber-800/60',
-        filename: 'solution.js',
-        placeholder: 'Write your JavaScript (Node.js) solution here...',
-      };
-    }
-    return {
-      label: 'C++ (GCC 9.2)',
-      icon: '⚡',
-      badgeClass: 'bg-cyan-950/60 text-cyan-300 border-cyan-800/60',
-      filename: 'solution.cpp',
-      placeholder: 'Write your C++ solution here...',
-    };
-  };
 
   const sampleCases = problem.sample_test_cases || [];
   const langInfo = getLanguageInfo(problem.language, problem);
@@ -405,13 +383,13 @@ export default function ProblemDetailPage() {
 
             {/* Code Input Area */}
             <div className="p-4 bg-[#0d1117]">
-              <textarea
+              <Editor
+                height="400px"
+                theme="vs-dark"
+                language={langInfo.monacoId}
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
-                rows={18}
-                spellCheck="false"
-                className="w-full bg-transparent font-mono text-xs text-slate-200 leading-relaxed outline-none resize-y selection:bg-indigo-500 selection:text-white"
-                placeholder={langInfo.placeholder}
+                onChange={(val) => setCode(val || '')}
+                options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 4 }}
               />
             </div>
 

@@ -43,6 +43,10 @@ export default function LoginPage() {
       await login(formData);
       navigate('/dashboard');
     } catch (err) {
+      if (err?.response?.data?.otp_required && err?.response?.data?.email) {
+        navigate(`/register?step=otp&email=${encodeURIComponent(err.response.data.email)}`);
+        return;
+      }
       const errorMsg =
         err?.response?.data?.detail ||
         err?.response?.data?.non_field_errors?.[0] ||

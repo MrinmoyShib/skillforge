@@ -1,80 +1,81 @@
 import axiosClient from './axiosClient';
+import { ENDPOINTS } from './endpoints';
 
 export const adminService = {
   // Telemetry & Analytics
   getAnalytics: async () => {
-    return await axiosClient.get('/admin/analytics/');
+    return await axiosClient.get(ENDPOINTS.ADMIN.ANALYTICS);
   },
 
   // Problem Studio
   getProblems: async (params = {}) => {
-    return await axiosClient.get('/admin/problems/', { params });
+    return await axiosClient.get(ENDPOINTS.ADMIN.PROBLEMS, { params });
   },
   getProblem: async (id) => {
-    return await axiosClient.get(`/admin/problems/${id}/`);
+    return await axiosClient.get(`${ENDPOINTS.ADMIN.PROBLEMS}${id}/`);
   },
   createProblem: async (data) => {
-    return await axiosClient.post('/admin/problems/', data);
+    return await axiosClient.post(ENDPOINTS.ADMIN.PROBLEMS, data);
   },
   updateProblem: async (id, data) => {
-    return await axiosClient.patch(`/admin/problems/${id}/`, data);
+    return await axiosClient.patch(`${ENDPOINTS.ADMIN.PROBLEMS}${id}/`, data);
   },
   deleteProblem: async (id) => {
-    return await axiosClient.delete(`/admin/problems/${id}/`);
+    return await axiosClient.delete(`${ENDPOINTS.ADMIN.PROBLEMS}${id}/`);
   },
   verifyProblem: async (id, data) => {
-    return await axiosClient.post(`/admin/problems/${id}/verify/`, data);
+    return await axiosClient.post(`${ENDPOINTS.ADMIN.PROBLEMS}${id}/verify/`, data);
   },
 
   // Guided Projects
   getProjects: async () => {
-    return await axiosClient.get('/admin/projects/');
+    return await axiosClient.get(ENDPOINTS.ADMIN.PROJECTS);
   },
   getProject: async (id) => {
-    return await axiosClient.get(`/admin/projects/${id}/`);
+    return await axiosClient.get(`${ENDPOINTS.ADMIN.PROJECTS}${id}/`);
   },
   createProject: async (data) => {
-    return await axiosClient.post('/admin/projects/', data);
+    return await axiosClient.post(ENDPOINTS.ADMIN.PROJECTS, data);
   },
   updateProject: async (id, data) => {
-    return await axiosClient.patch(`/admin/projects/${id}/`, data);
+    return await axiosClient.patch(`${ENDPOINTS.ADMIN.PROJECTS}${id}/`, data);
   },
   deleteProject: async (id) => {
-    return await axiosClient.delete(`/admin/projects/${id}/`);
+    return await axiosClient.delete(`${ENDPOINTS.ADMIN.PROJECTS}${id}/`);
   },
   addMilestone: async (projectId, data) => {
-    return await axiosClient.post(`/admin/projects/${projectId}/milestones/`, data);
+    return await axiosClient.post(`${ENDPOINTS.ADMIN.PROJECTS}${projectId}/milestones/`, data);
   },
   updateMilestone: async (projectId, milestoneId, data) => {
-    return await axiosClient.patch(`/admin/projects/${projectId}/milestones/${milestoneId}/`, data);
+    return await axiosClient.patch(`${ENDPOINTS.ADMIN.PROJECTS}${projectId}/milestones/${milestoneId}/`, data);
   },
   deleteMilestone: async (projectId, milestoneId) => {
-    return await axiosClient.delete(`/admin/projects/${projectId}/milestones/${milestoneId}/`);
+    return await axiosClient.delete(`${ENDPOINTS.ADMIN.PROJECTS}${projectId}/milestones/${milestoneId}/`);
   },
 
   // User Management
   getUsers: async (params = {}) => {
-    return await axiosClient.get('/admin/users/', { params });
+    return await axiosClient.get(ENDPOINTS.ADMIN.USERS, { params });
   },
   getUser: async (id) => {
-    return await axiosClient.get(`/admin/users/${id}/`);
+    return await axiosClient.get(`${ENDPOINTS.ADMIN.USERS}${id}/`);
   },
   updateUser: async (id, data) => {
-    return await axiosClient.patch(`/admin/users/${id}/`, data);
+    return await axiosClient.patch(`${ENDPOINTS.ADMIN.USERS}${id}/`, data);
   },
   adjustUserXP: async (id, data) => {
-    return await axiosClient.post(`/admin/users/${id}/adjust-xp/`, data);
+    return await axiosClient.post(`${ENDPOINTS.ADMIN.USERS}${id}/adjust-xp/`, data);
   },
 
   // Submissions Audit
   getSubmissions: async (params = {}) => {
-    return await axiosClient.get('/admin/submissions/', { params });
+    return await axiosClient.get(ENDPOINTS.ADMIN.SUBMISSIONS, { params });
   },
   getSubmission: async (id) => {
-    return await axiosClient.get(`/admin/submissions/${id}/`);
+    return await axiosClient.get(`${ENDPOINTS.ADMIN.SUBMISSIONS}${id}/`);
   },
   rejudgeSubmission: async (id) => {
-    return await axiosClient.post(`/admin/submissions/${id}/rejudge/`);
+    return await axiosClient.post(`${ENDPOINTS.ADMIN.SUBMISSIONS}${id}/rejudge/`);
   },
 };
 

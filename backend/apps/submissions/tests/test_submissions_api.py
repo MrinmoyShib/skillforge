@@ -16,7 +16,8 @@ def student_user(db):
         username="codestudent",
         email="student@skillforge.test",
         password="StudentPassword123!",
-        display_name="Code Student"
+        display_name="Code Student",
+        is_active=True
     )
 
 
@@ -26,7 +27,8 @@ def other_student_user(db):
         username="otherstudent",
         email="other@skillforge.test",
         password="StudentPassword123!",
-        display_name="Other Student"
+        display_name="Other Student",
+        is_active=True
     )
 
 
@@ -36,7 +38,8 @@ def admin_user(db):
         username="evaladmin",
         email="evaladmin@skillforge.test",
         password="AdminPassword123!",
-        display_name="Eval Admin"
+        display_name="Eval Admin",
+        is_active=True
     )
     admin.is_staff = True
     admin.save(update_fields=['is_staff'])

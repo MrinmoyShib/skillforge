@@ -3,7 +3,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 
 export default function AppLayout() {
-  const { user, logout, loading } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -15,6 +15,9 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[var(--color-surface-dark)] text-[var(--color-text-primary)] flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm">
+        Skip to main content
+      </a>
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-[var(--color-surface-hover)] bg-[var(--color-surface-card)]/90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -66,7 +69,7 @@ export default function AppLayout() {
           </div>
 
           <div className="flex items-center gap-3">
-            {loading ? (
+            {isLoading ? (
               <div className="w-8 h-8 rounded-full bg-slate-800 animate-pulse" />
             ) : user ? (
               <div className="flex items-center gap-3 sm:gap-4">
@@ -143,6 +146,8 @@ export default function AppLayout() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white bg-slate-800/80 border border-slate-700 hover:bg-slate-700 transition flex items-center justify-center"
               aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
             >
               {mobileMenuOpen ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,7 +164,7 @@ export default function AppLayout() {
 
         {/* Mobile Slide-Down Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-800 bg-slate-950/95 px-4 pt-3 pb-5 space-y-3 backdrop-blur-xl shadow-2xl">
+          <div id="mobile-menu" className="md:hidden border-t border-slate-800 bg-slate-950/95 px-4 pt-3 pb-5 space-y-3 backdrop-blur-xl shadow-2xl">
             {/* User Info on Mobile */}
             {user && (
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -311,7 +316,7 @@ export default function AppLayout() {
       </header>
 
       {/* Main Content Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0">
+      <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0">
         <Outlet />
       </main>
 

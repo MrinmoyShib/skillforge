@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { problemService } from '../services/api/problemService';
 import { progressService } from '../services/api/progressService';
 import { useAuth } from '../context/AuthContext';
+import { getLanguageInfo } from '../utils/languageUtils';
 
 export default function ProblemsPage() {
   const { user } = useAuth();
@@ -119,37 +120,7 @@ export default function ProblemsPage() {
     }
   };
 
-  const getLanguageBadge = (lang, problem = null) => {
-    const raw = (
-      lang ||
-      problem?.language ||
-      problem?.category?.slug ||
-      (problem?.slug?.startsWith('py-') ? 'python' : '') ||
-      (problem?.slug?.startsWith('js-') ? 'javascript' : '') ||
-      (problem?.slug?.startsWith('cpp-') ? 'cpp' : '') ||
-      (selectedCategory || '')
-    ).toLowerCase();
 
-    if (raw.includes('python') || raw.startsWith('py')) {
-      return {
-        label: 'Python 3',
-        icon: '🐍',
-        badgeClass: 'bg-emerald-950/60 text-emerald-300 border-emerald-800/60',
-      };
-    }
-    if (raw.includes('javascript') || raw.includes('node') || raw.startsWith('js')) {
-      return {
-        label: 'JavaScript',
-        icon: '🟨',
-        badgeClass: 'bg-amber-950/60 text-amber-300 border-amber-800/60',
-      };
-    }
-    return {
-      label: 'C++',
-      icon: '⚡',
-      badgeClass: 'bg-cyan-950/60 text-cyan-300 border-cyan-800/60',
-    };
-  };
 
   const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
@@ -345,7 +316,7 @@ export default function ProblemsPage() {
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     {(() => {
-                      const langInfo = getLanguageBadge(problem.language, problem);
+                      const langInfo = getLanguageInfo(problem.language || selectedCategory, problem);
                       return (
                         <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${langInfo.badgeClass} flex items-center gap-1`}>
                           <span>{langInfo.icon}</span> {langInfo.label}

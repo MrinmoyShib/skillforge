@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import adminService from '../../services/api/adminService';
 import Spinner from '../../components/feedback/Spinner';
+import { useToast } from '../../components/feedback/Toast';
 
 export default function AdminSubmissionsPage() {
+  const toast = useToast();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -47,7 +49,7 @@ export default function AdminSubmissionsPage() {
       const detail = await adminService.getSubmission(subId);
       setInspectingSub(detail);
     } catch (err) {
-      alert('Failed to load submission details: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Failed to load submission details: ' + (err?.response?.data?.detail || err.message));
     } finally {
       setInspectLoading(false);
     }
@@ -69,8 +71,9 @@ export default function AdminSubmissionsPage() {
       if (inspectingSub?.id === subId) {
         setInspectingSub(updated);
       }
+      toast.success('Re-judged successfully.');
     } catch (err) {
-      alert('Re-judge failed: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Re-judge failed: ' + (err?.response?.data?.detail || err.message));
     } finally {
       setRejudgingId(null);
     }

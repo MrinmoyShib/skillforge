@@ -18,7 +18,8 @@ def registered_user(db):
         username="demodev",
         email="demodev@example.com",
         password="ComplexPassword123!",
-        display_name="Demo Dev"
+        display_name="Demo Dev",
+        is_active=True
     )
 
 
@@ -32,6 +33,7 @@ class TestAuthenticationAPI:
         assert "csrftoken" in response.cookies
 
     def test_register_success(self, api_client):
+        from apps.accounts.models import EmailVerificationOTP, User
         url = reverse('auth-register')
         payload = {
             "username": "newdev",
@@ -41,14 +43,25 @@ class TestAuthenticationAPI:
         }
         response = api_client.post(url, data=payload, format='json')
         assert response.status_code == 201
-        assert response.data["user"]["username"] == "newdev"
-        assert response.data["user"]["profile"]["display_name"] == "New Developer"
+        assert response.data["otp_required"] is True
+        assert response.data["email"] == "newdev@example.com"
 
-        # Verify HttpOnly cookies were set
-        assert "access_token" in response.cookies
-        assert "refresh_token" in response.cookies
-        assert response.cookies["access_token"]["httponly"] is True
-        assert response.cookies["refresh_token"]["httponly"] is True
+        # Verify user created inactive and OTP was generated
+        user = User.objects.get(username="newdev")
+        assert not user.is_active
+        otp = EmailVerificationOTP.objects.filter(user=user, is_used=False).first()
+        assert otp is not None
+
+        # Verify OTP activates user and sets HttpOnly cookies
+        verify_url = reverse('auth-verify-otp')
+        verify_res = api_client.post(verify_url, {"email": "newdev@example.com", "otp_code": otp.otp_code}, format='json')
+        assert verify_res.status_code == 200
+        user.refresh_from_db()
+        assert user.is_active is True
+        assert "access_token" in verify_res.cookies
+        assert "refresh_token" in verify_res.cookies
+        assert verify_res.cookies["access_token"]["httponly"] is True
+        assert verify_res.cookies["refresh_token"]["httponly"] is True
 
     def test_register_duplicate_username(self, api_client, registered_user):
         url = reverse('auth-register')
@@ -150,7 +163,6 @@ class TestAuthenticationAPI:
         url = reverse('auth-me')
         payload = {
             "username": "updateddev",
-            "email": "updateddev@example.com",
             "display_name": "Updated Dev",
             "phone_number": "+1 555-0199",
             "bio": "Senior Backend Architect",
@@ -164,7 +176,6 @@ class TestAuthenticationAPI:
         assert response.status_code == 200
         data = response.data
         assert data["username"] == "updateddev"
-        assert data["email"] == "updateddev@example.com"
         assert data["profile"]["display_name"] == "Updated Dev"
         assert data["profile"]["phone_number"] == "+1 555-0199"
         assert data["profile"]["github_url"] == "https://github.com/updateddev"

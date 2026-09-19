@@ -59,6 +59,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements/dev.txt
 
+      - name: Run Ruff Linter
+        run: pip install ruff && ruff check backend/apps/
+
+      - name: Run Dependency Audit
+        run: pip install pip-audit && pip-audit -r backend/requirements/base.txt
+
       - name: Run Django System Check
         working-directory: backend
         env:
@@ -111,6 +117,10 @@ jobs:
         working-directory: frontend
         run: npm ci --include=optional
 
+      - name: Run NPM Audit
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
       - name: Rebuild Tailwind native binding
         working-directory: frontend
         run: npm rebuild @tailwindcss/oxide
@@ -119,3 +129,4 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      # Note: Frontend tests can be added here when test files exist

@@ -77,12 +77,11 @@ class ProfileUpdateInputSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         user = self.context.get('request').user if self.context.get('request') else None
-        qs = User.objects.filter(email__iexact=value)
-        if user and user.is_authenticated:
-            qs = qs.exclude(id=user.id)
-        if qs.exists():
-            raise serializers.ValidationError("A user with that email already exists.")
-        return value.lower()
+        if user and user.is_authenticated and value.lower().strip() != user.email.lower().strip():
+            raise serializers.ValidationError(
+                "Direct email change is disabled for security. Please use the 'Change Email' verification feature."
+            )
+        return value.lower().strip()
 
 
 class ChangePasswordInputSerializer(serializers.Serializer):
@@ -106,4 +105,59 @@ class ChangePasswordInputSerializer(serializers.Serializer):
 
         validate_password(attrs['new_password'], user=user)
         return attrs
+
+
+class VerifyOTPInputSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(min_length=6, max_length=6, required=False)
+    otp_code = serializers.CharField(min_length=6, max_length=6, required=False)
+
+    def validate(self, attrs):
+        code = (attrs.get('otp') or attrs.get('otp_code') or '').strip()
+        if not code:
+            raise serializers.ValidationError({"otp": "Verification code is required."})
+        if not code.isdigit() or len(code) != 6:
+            raise serializers.ValidationError({"otp": "Verification code must be 6 digits."})
+        attrs['otp'] = code
+        attrs['otp_code'] = code
+        return attrs
+
+
+class ResendOTPInputSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class RequestEmailChangeInputSerializer(serializers.Serializer):
+    new_email = serializers.EmailField()
+    current_password = serializers.CharField(write_only=True)
+
+    def validate_new_email(self, value):
+        user = self.context.get('request').user if self.context.get('request') else None
+        normalized = value.lower().strip()
+        if user and user.is_authenticated and normalized == user.email.lower().strip():
+            raise serializers.ValidationError("New email must be different from your current email.")
+        if User.objects.filter(email__iexact=normalized).exists():
+            raise serializers.ValidationError("A user with that email already exists.")
+        return normalized
+
+    def validate(self, attrs):
+        user = self.context.get('request').user if self.context.get('request') else None
+        if not user or not user.is_authenticated:
+            raise serializers.ValidationError("User is not authenticated.")
+        if not user.check_password(attrs['current_password']):
+            raise serializers.ValidationError({"current_password": "Current password is incorrect."})
+        return attrs
+
+
+class ConfirmEmailChangeInputSerializer(serializers.Serializer):
+    new_email = serializers.EmailField()
+    otp = serializers.CharField(min_length=6, max_length=6)
+
+    def validate_new_email(self, value):
+        return value.lower().strip()
+
+    def validate_otp(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError("Verification code must be 6 digits.")
+        return value
 

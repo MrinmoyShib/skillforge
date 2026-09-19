@@ -19,7 +19,8 @@ class Command(BaseCommand):
                 username="admin",
                 email="admin@skillforge.dev",
                 password="AdminPassword123!",
-                display_name="SkillForge Administrator"
+                display_name="SkillForge Administrator",
+                is_active=True
             )
             admin_user.is_staff = True
             admin_user.is_superuser = True
@@ -35,7 +36,8 @@ class Command(BaseCommand):
                 username="student",
                 email="student@skillforge.dev",
                 password="StudentPassword123!",
-                display_name="Alex River"
+                display_name="Alex River",
+                is_active=True
             )
             self.stdout.write(self.style.SUCCESS("Created student user: student / StudentPassword123!"))
         else:

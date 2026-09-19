@@ -46,7 +46,7 @@ class AdminAnalyticsAPI(APIView):
         # Projects
         total_projects = Project.objects.count()
         total_milestones_completed = sum(
-            r.completed_milestones.count() for r in UserProjectProgress.objects.all()
+            len(milestones or []) for milestones in UserProjectProgress.objects.values_list('completed_milestones', flat=True)
         )
 
         # Submissions
@@ -55,9 +55,14 @@ class AdminAnalyticsAPI(APIView):
         acceptance_rate = round((accepted_submissions / total_submissions * 100), 1) if total_submissions > 0 else 0.0
 
         # Solves by Language
-        python_solves = UserProgress.objects.filter(solved=True, problem__language='python').count()
-        js_solves = UserProgress.objects.filter(solved=True, problem__language='javascript').count()
-        cpp_solves = UserProgress.objects.filter(solved=True, problem__language='cpp').count()
+        language_counts = dict(
+            UserProgress.objects.filter(solved=True)
+            .values_list('problem__language')
+            .annotate(c=Count('id'))
+        )
+        python_solves = language_counts.get('python', 0)
+        js_solves = language_counts.get('javascript', 0)
+        cpp_solves = language_counts.get('cpp', 0)
 
         # System Health
         db_status = "healthy"

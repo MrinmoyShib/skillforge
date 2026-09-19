@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import adminService from '../../services/api/adminService';
 import Spinner from '../../components/feedback/Spinner';
+import { useToast } from '../../components/feedback/Toast';
 
 export default function AdminProjectsPage() {
+  const toast = useToast();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -117,7 +119,7 @@ export default function AdminProjectsPage() {
       setModalTab('general');
       setModalOpen(true);
     } catch (err) {
-      alert('Failed to load project details: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Failed to load project details: ' + (err?.response?.data?.detail || err.message));
     } finally {
       setLoading(false);
     }
@@ -130,19 +132,21 @@ export default function AdminProjectsPage() {
       });
       setProjects(projects.map(p => p.id === project.id ? { ...p, is_published: updated.is_published } : p));
     } catch (err) {
-      alert('Failed to update project: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Failed to update project: ' + (err?.response?.data?.detail || err.message));
     }
   };
 
   const handleDeleteProject = async (project) => {
+    // TODO: replace with confirmation modal
     if (!window.confirm(`Are you sure you want to permanently delete project "${project.title}"?`)) {
       return;
     }
     try {
       await adminService.deleteProject(project.id);
       setProjects(projects.filter(p => p.id !== project.id));
+      toast.success('Project deleted successfully.');
     } catch (err) {
-      alert('Failed to delete project: ' + (err?.response?.data?.detail || err.message));
+      toast.error('Failed to delete project: ' + (err?.response?.data?.detail || err.message));
     }
   };
 
@@ -152,13 +156,15 @@ export default function AdminProjectsPage() {
       setSaving(true);
       if (editingProject) {
         await adminService.updateProject(editingProject.id, formData);
+        toast.success('Project updated successfully.');
       } else {
         await adminService.createProject(formData);
+        toast.success('Project created successfully.');
       }
       setModalOpen(false);
       fetchProjects();
     } catch (err) {
-      alert('Failed to save project: ' + JSON.stringify(err?.response?.data || err.message));
+      toast.error('Failed to save project: ' + JSON.stringify(err?.response?.data || err.message));
     } finally {
       setSaving(false);
     }

@@ -148,7 +148,7 @@ export default function AdminLayout() {
               Database Backdoor
             </div>
             <a
-              href="http://localhost:8000/admin/"
+              href={`${import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || ''}/admin/`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-amber-400/90 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all group"
