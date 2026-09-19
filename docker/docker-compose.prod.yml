@@ -1,0 +1,100 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: skillforge-db-prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-skillforge}
+      POSTGRES_USER: ${POSTGRES_USER:-skillforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-skillforge_prod_password}
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-skillforge} -d ${POSTGRES_DB:-skillforge}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillforge-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: skillforge-redis-prod
+    restart: always
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-skillforge_redis_secret}"]
+    volumes:
+      - redis-prod-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-skillforge_redis_secret}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillforge-net
+
+  django:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.prod
+    container_name: skillforge-django-prod
+    restart: always
+    env_file:
+      - path: ../.env.prod
+        required: false
+    volumes:
+      - staticfiles-prod:/app/staticfiles
+      - media-prod:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - skillforge-net
+
+  celery-worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.prod
+    container_name: skillforge-celery-prod
+    restart: always
+    entrypoint: []
+    command: ["celery", "-A", "config", "worker", "-l", "info", "-c", "4"]
+    env_file:
+      - path: ../.env.prod
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - skillforge-net
+
+  web:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.prod
+    container_name: skillforge-web-prod
+    restart: always
+    ports:
+      - "${PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - staticfiles-prod:/app/staticfiles:ro
+      - media-prod:/app/media:ro
+    depends_on:
+      - django
+    networks:
+      - skillforge-net
+
+volumes:
+  postgres-prod-data:
+  redis-prod-data:
+  staticfiles-prod:
+  media-prod:
+
+networks:
+  skillforge-net:
+    name: skillforge-net
+    external: true

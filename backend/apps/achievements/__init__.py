@@ -1,0 +1,4 @@
+"""
+Achievements and badges app.
+"""
+

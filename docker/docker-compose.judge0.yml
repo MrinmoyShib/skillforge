@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  judge0-server:
+    image: judge0/judge0:v1.13.1
+    container_name: judge0-server
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    ports:
+      - "2358:2358"
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+    networks:
+      - skillforge-net
+
+  judge0-worker:
+    image: judge0/judge0:v1.13.1
+    container_name: judge0-worker
+    restart: unless-stopped
+    privileged: true
+    command: ["./scripts/workers"]
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+    networks:
+      - skillforge-net
+
+  judge0-db:
+    image: postgres:16
+    container_name: judge0-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0_user
+      POSTGRES_PASSWORD: judge0_dev_password
+    volumes:
+      - judge0-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judge0_user -d judge0"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillforge-net
+
+  judge0-redis:
+    image: redis:7
+    container_name: judge0-redis
+    restart: unless-stopped
+    command: ["bash", "-c", "redis-server --appendonly no --requirepass $${REDIS_PASSWORD:-judge0_redis_password}"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "judge0_redis_password", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillforge-net
+
+volumes:
+  judge0-pgdata:
+
+networks:
+  skillforge-net:
+    external: true
+    name: skillforge-net
