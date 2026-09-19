@@ -109,7 +109,7 @@ jobs:
 
       - name: Install Dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install
 
       - name: Verify Production Build
         working-directory: frontend

@@ -34,5 +34,8 @@
     "@babel/preset-env": "^7.26.0",
     "@babel/preset-react": "^7.26.0",
     "identity-obj-proxy": "^3.0.0"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.28.0"
   }
 }
