@@ -109,9 +109,11 @@ jobs:
 
       - name: Install Dependencies
         working-directory: frontend
-        run: |
-          npm install
-          npm install @rollup/rollup-linux-x64-gnu lightningcss-linux-x64-gnu --no-save
+        run: npm ci --include=optional
+
+      - name: Rebuild Tailwind native binding
+        working-directory: frontend
+        run: npm rebuild @tailwindcss/oxide
 
       - name: Verify Production Build
         working-directory: frontend
