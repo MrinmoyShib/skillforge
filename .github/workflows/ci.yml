@@ -109,7 +109,9 @@ jobs:
 
       - name: Install Dependencies
         working-directory: frontend
-        run: npm install
+        run: |
+          npm install
+          npm install @rollup/rollup-linux-x64-gnu lightningcss-linux-x64-gnu --no-save
 
       - name: Verify Production Build
         working-directory: frontend
