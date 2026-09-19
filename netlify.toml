@@ -1,7 +1,7 @@
 [build]
   base = "frontend"
   publish = "dist"
-  command = "npm run build"
+  command = "npm ci --include=optional && npm rebuild @tailwindcss/oxide && npm run build"
 
 [build.environment]
   NODE_VERSION = "22"
