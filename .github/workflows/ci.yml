@@ -87,7 +87,7 @@ jobs:
           DATABASE_URL: postgres://skillforge:skillforge_dev_password@localhost:5432/skillforge
           CELERY_BROKER_URL: redis://localhost:6379/0
           CELERY_RESULT_BACKEND: redis://localhost:6379/0
-        run: pytest apps/ -v
+        run: pytest apps/ -v --create-db
 
   # ============================================================================
   # 2. Frontend Quality Gates: Clean NPM Install & Production Build
@@ -105,7 +105,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: 'frontend/package.json'
+          cache-dependency-path: 'frontend/package-lock.json'
 
       - name: Install Dependencies
         working-directory: frontend
