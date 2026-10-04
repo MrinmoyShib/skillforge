@@ -99,7 +99,7 @@ def user_verify_otp(*, email: str, otp: str = "", otp_code: str = "") -> User:
         raise ValidationError({'detail': 'No account found with this email address.'})
 
     if user.is_active:
-        return user
+        raise ValidationError({'detail': 'Account is already verified. Please log in with your password.'})
 
     otp_record = (
         EmailVerificationOTP.objects

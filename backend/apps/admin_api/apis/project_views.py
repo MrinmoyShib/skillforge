@@ -43,7 +43,12 @@ class AdminProjectViewSet(viewsets.ModelViewSet):
         project = self.get_object()
         serializer = AdminProjectMilestoneSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        milestone = ProjectMilestone.objects.create(project=project, **serializer.validated_data)
+        validated = dict(serializer.validated_data)
+        target_order = validated.get('order')
+        if not target_order or ProjectMilestone.objects.filter(project=project, order=target_order).exists():
+            max_order = ProjectMilestone.objects.filter(project=project).order_by('-order').values_list('order', flat=True).first() or 0
+            validated['order'] = max_order + 1
+        milestone = ProjectMilestone.objects.create(project=project, **validated)
         return Response(AdminProjectMilestoneSerializer(milestone).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['put', 'patch'], url_path=r'milestones/(?P<milestone_id>\d+)')

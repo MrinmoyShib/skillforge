@@ -56,7 +56,24 @@ def verify_milestone(*, user, project: Project, milestone: ProjectMilestone, sou
         memory_limit=262144
     )
 
-    passed = (result.status == SubmissionStatus.ACCEPTED) or ('PASS' in (result.stdout or ''))
+    has_error_status = (
+        result.status in (
+            SubmissionStatus.RUNTIME_ERROR,
+            SubmissionStatus.COMPILATION_ERROR,
+            SubmissionStatus.TIME_LIMIT_EXCEEDED,
+            SubmissionStatus.MEMORY_LIMIT_EXCEEDED,
+            SubmissionStatus.INTERNAL_ERROR,
+            SubmissionStatus.WRONG_ANSWER,
+        )
+        or bool(result.stderr and 'traceback' in result.stderr.lower())
+    )
+
+    stdout_lines = [line.strip() for line in (result.stdout or '').splitlines()]
+    has_pass_verdict = 'PASS' in stdout_lines
+
+    passed = (not has_error_status) and (
+        result.status == SubmissionStatus.ACCEPTED or has_pass_verdict
+    )
 
     if not passed:
         diag = result.compile_output or result.stderr or result.stdout or result.error_message or "Output did not match expected verification criteria."

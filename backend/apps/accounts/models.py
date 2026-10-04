@@ -52,8 +52,8 @@ class EmailVerificationOTP(models.Model):
     class Meta:
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['user', 'is_used']),
-            models.Index(fields=['user', 'purpose', 'is_used']),
+            models.Index(fields=['user', 'is_used'], name='accounts_em_user_id_449622_idx'),
+            models.Index(fields=['user', 'purpose', 'is_used'], name='accounts_em_user_id_c91823_idx'),
         ]
 
     def is_valid(self) -> bool:

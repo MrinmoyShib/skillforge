@@ -212,4 +212,21 @@ class TestAuthenticationAPI:
         assert response.status_code == 400
         assert "detail" in response.data
 
+    def test_verify_otp_bypass_prevented_for_active_user(self, api_client, registered_user):
+        """
+        Verify that an attacker cannot supply a dummy OTP for an already active user
+        to bypass password authentication (BUG-005).
+        """
+        verify_url = reverse('auth-verify-otp')
+        payload = {
+            "email": registered_user.email,
+            "otp_code": "000000"
+        }
+        response = api_client.post(verify_url, payload, format='json')
+        assert response.status_code == 400
+        assert "Account is already verified" in str(response.data)
+        # Ensure auth cookies were NOT issued
+        assert "access_token" not in response.cookies
+        assert "refresh_token" not in response.cookies
+
 

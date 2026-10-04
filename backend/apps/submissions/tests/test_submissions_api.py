@@ -279,17 +279,44 @@ class TestSubmissionsAPI:
         assert sub.status == SubmissionStatus.TIME_LIMIT_EXCEEDED
 
     def test_python_submission_evaluation(self, student_user, coding_problem):
+        real_solution = (
+            "import sys\n"
+            "from functools import reduce\n"
+            "import operator\n"
+            "lines = sys.stdin.read().strip().splitlines()\n"
+            "if lines:\n"
+            "    arr = list(map(int, lines[1].split()))\n"
+            "    print(reduce(operator.mul, arr, 1))\n"
+        )
         sub = Submission.objects.create(
             user=student_user,
             problem=coding_problem,
             language='python',
-            source_code="import sys\ndef solve():\n    print(1)\nsolve()",
+            source_code=real_solution,
             status=SubmissionStatus.PENDING
         )
         evaluate_submission_task(sub.id)
         sub.refresh_from_db()
         assert sub.status == SubmissionStatus.ACCEPTED
         assert sub.language == 'python'
+        assert sub.passed_test_cases_count == 2
+
+    def test_python_submission_random_code_fails_evaluation(self, student_user, coding_problem):
+        """
+        Verify BUG-028 fix: random or unsolved Python code must receive WRONG_ANSWER
+        and NOT be falsely marked ACCEPTED.
+        """
+        sub = Submission.objects.create(
+            user=student_user,
+            problem=coding_problem,
+            language='python',
+            source_code="x = 42\nprint('random code')",
+            status=SubmissionStatus.PENDING
+        )
+        evaluate_submission_task(sub.id)
+        sub.refresh_from_db()
+        assert sub.status == SubmissionStatus.WRONG_ANSWER
+        assert sub.passed_test_cases_count == 0
 
     def test_javascript_submission_evaluation(self, student_user, coding_problem):
         sub = Submission.objects.create(

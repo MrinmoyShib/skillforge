@@ -1,6 +1,7 @@
 """
 Serializers for Admin Guided Projects & Milestones Management.
 """
+from django.db import transaction
 from rest_framework import serializers
 from apps.projects.models import Project, ProjectMilestone
 
@@ -99,42 +100,52 @@ class AdminProjectCreateUpdateSerializer(serializers.ModelSerializer):
         return project
 
     def update(self, instance, validated_data):
-        milestones_data = validated_data.pop('milestones', None)
+        with transaction.atomic():
+            milestones_data = validated_data.pop('milestones', None)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
 
-        if milestones_data is not None:
-            existing_m_ids = set(instance.milestones.values_list('id', flat=True))
-            incoming_m_ids = {m['id'] for m in milestones_data if 'id' in m}
+            if milestones_data is not None:
+                existing_m_ids = set(instance.milestones.values_list('id', flat=True))
+                incoming_m_ids = {m['id'] for m in milestones_data if 'id' in m}
 
-            to_delete = existing_m_ids - incoming_m_ids
-            if to_delete:
-                ProjectMilestone.objects.filter(id__in=to_delete).delete()
+                to_delete = existing_m_ids - incoming_m_ids
+                if to_delete:
+                    ProjectMilestone.objects.filter(id__in=to_delete).delete()
 
-            for idx, m in enumerate(milestones_data):
-                m_id = m.get('id')
-                if m_id and m_id in existing_m_ids:
-                    ProjectMilestone.objects.filter(id=m_id).update(
-                        order=m.get('order', idx + 1),
-                        title=m.get('title', ''),
-                        description=m.get('description', ''),
-                        starter_code=m.get('starter_code', ''),
-                        test_harness_code=m.get('test_harness_code', ''),
-                        hints=m.get('hints', []),
-                        xp_reward=m.get('xp_reward', 50),
-                    )
-                else:
-                    ProjectMilestone.objects.create(
-                        project=instance,
-                        order=m.get('order', idx + 1),
-                        title=m.get('title', ''),
-                        description=m.get('description', ''),
-                        starter_code=m.get('starter_code', ''),
-                        test_harness_code=m.get('test_harness_code', ''),
-                        hints=m.get('hints', []),
-                        xp_reward=m.get('xp_reward', 50),
-                    )
+                # Phase 1: Temporarily shift active milestone orders to high positive offset (>= 100000)
+                # to satisfy PositiveIntegerField check constraint (order >= 0) while freeing slots 1..N
+                surviving_ids = existing_m_ids - to_delete
+                for m_id in surviving_ids:
+                    ProjectMilestone.objects.filter(id=m_id).update(order=100000 + m_id)
 
-        return instance
+                # Phase 2: Apply final target orders and attribute updates
+                for idx, m in enumerate(milestones_data):
+                    m_id = m.get('id')
+                    target_order = m.get('order', idx + 1)
+                    if m_id and m_id in surviving_ids:
+                        ProjectMilestone.objects.filter(id=m_id).update(
+                            order=target_order,
+                            title=m.get('title', ''),
+                            description=m.get('description', ''),
+                            starter_code=m.get('starter_code', ''),
+                            test_harness_code=m.get('test_harness_code', ''),
+                            hints=m.get('hints', []),
+                            xp_reward=m.get('xp_reward', 50),
+                        )
+                    else:
+                        ProjectMilestone.objects.create(
+                            project=instance,
+                            order=target_order,
+                            title=m.get('title', ''),
+                            description=m.get('description', ''),
+                            starter_code=m.get('starter_code', ''),
+                            test_harness_code=m.get('test_harness_code', ''),
+                            hints=m.get('hints', []),
+                            xp_reward=m.get('xp_reward', 50),
+                        )
+
+            return instance
+

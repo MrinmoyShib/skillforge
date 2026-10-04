@@ -98,6 +98,20 @@ class TestProjectsAPI:
         assert data["passed"] is False
         assert data["xp_awarded"] == 0
 
+    def test_verify_milestone_fail_with_pass_keyword(self, api_client, student_user, sample_project):
+        api_client.force_authenticate(user=student_user)
+        m1 = sample_project.milestones.first()
+
+        # Submit code that prints PASS but crashes
+        res = api_client.post(
+            f"/api/v1/projects/{sample_project.slug}/milestones/{m1.id}/verify/",
+            {"source_code": "print('PASS')\nraise ValueError('Simulated crash')"}
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["passed"] is False
+        assert data["xp_awarded"] == 0
+
     def test_verify_milestone_pass_and_complete_project(self, api_client, student_user, sample_project):
         api_client.force_authenticate(user=student_user)
         m1 = sample_project.milestones.get(order=1)

@@ -114,11 +114,11 @@ class AdminUserDetailSerializer(serializers.ModelSerializer):
         return breakdown
 
     def get_enrolled_projects(self, obj):
-        records = UserProjectProgress.objects.filter(user=obj).select_related('project').prefetch_related('completed_milestones')
+        records = UserProjectProgress.objects.filter(user=obj).select_related('project').prefetch_related('project__milestones')
         data = []
         for r in records:
-            total_milestones = r.project.milestones.count()
-            completed_count = r.completed_milestones.count()
+            total_milestones = len(r.project.milestones.all())
+            completed_count = len(r.completed_milestones or [])
             data.append({
                 "project_id": r.project.id,
                 "title": r.project.title,
@@ -127,7 +127,7 @@ class AdminUserDetailSerializer(serializers.ModelSerializer):
                 "status": r.status,
                 "completed_milestones_count": completed_count,
                 "total_milestones_count": total_milestones,
-                "last_active_at": r.last_active_at,
+                "last_active_at": r.updated_at,
             })
         return data
 

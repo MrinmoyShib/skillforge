@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   judge0-server:
-    image: judge0/judge0:v1.13.1
+    image: judge0/judge0:1.13.0
     container_name: judge0-server
     restart: unless-stopped
     privileged: true
@@ -19,7 +19,7 @@ services:
       - skillforge-net
 
   judge0-worker:
-    image: judge0/judge0:v1.13.1
+    image: judge0/judge0:1.13.0
     container_name: judge0-worker
     restart: unless-stopped
     privileged: true
