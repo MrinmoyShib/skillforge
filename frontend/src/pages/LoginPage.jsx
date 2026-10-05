@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { validators, validate } from '../utils/validators';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const [formData, setFormData] = useState({ username: '', password: '' });
@@ -41,7 +42,8 @@ export default function LoginPage() {
 
     try {
       await login(formData);
-      navigate('/dashboard');
+      const destination = location.state?.from?.pathname || '/dashboard';
+      navigate(destination, { replace: true });
     } catch (err) {
       if (err?.response?.data?.otp_required && err?.response?.data?.email) {
         navigate(`/register?step=otp&email=${encodeURIComponent(err.response.data.email)}`);

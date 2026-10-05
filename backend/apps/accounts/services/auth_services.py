@@ -28,26 +28,30 @@ def user_generate_otp(user: User) -> str:
     code = f"{secrets.randbelow(900000) + 100000}"
     expires_at = timezone.now() + timedelta(minutes=10)
 
-    EmailVerificationOTP.objects.create(
+    otp_record = EmailVerificationOTP(
         user=user,
-        otp_code=code,
         expires_at=expires_at,
     )
+    otp_record.set_otp(code)
+    otp_record.save()
 
-    # Dispatch asynchronous email task
-    try:
-        send_otp_email_task.delay(
-            email=user.email,
-            username=user.username,
-            otp_code=code
-        )
-    except Exception:
-        # Fallback to synchronous if Celery broker is unavailable in dev
-        send_otp_email_task(
-            email=user.email,
-            username=user.username,
-            otp_code=code
-        )
+    # Dispatch asynchronous email task only after transaction commits successfully
+    def _dispatch_otp():
+        try:
+            send_otp_email_task.delay(
+                email=user.email,
+                username=user.username,
+                otp_code=code
+            )
+        except Exception:
+            # Fallback to synchronous if Celery broker is unavailable in dev
+            send_otp_email_task.apply(kwargs={
+                'email': user.email,
+                'username': user.username,
+                'otp_code': code,
+            })
+
+    transaction.on_commit(_dispatch_otp)
 
     return code
 
@@ -101,32 +105,33 @@ def user_verify_otp(*, email: str, otp: str = "", otp_code: str = "") -> User:
     if user.is_active:
         raise ValidationError({'detail': 'Account is already verified. Please log in with your password.'})
 
-    otp_record = (
-        EmailVerificationOTP.objects
-        .filter(user=user, is_used=False)
-        .order_by('-created_at')
-        .first()
-    )
-
-    if not otp_record or not otp_record.is_valid():
-        raise ValidationError({
-            'detail': 'Verification code has expired or maximum attempts exceeded. Please request a new code.'
-        })
-
-    if otp_record.otp_code != code_to_check:
-        otp_record.attempts += 1
-        otp_record.save(update_fields=['attempts'])
-        remaining = 5 - otp_record.attempts
-        if remaining <= 0:
-            raise ValidationError({
-                'detail': 'Maximum verification attempts exceeded. Please request a new code.'
-            })
-        raise ValidationError({
-            'detail': f'Invalid verification code. {remaining} attempt(s) remaining.'
-        })
-
-    # OTP is valid — activate account and mark code as used
     with transaction.atomic():
+        otp_record = (
+            EmailVerificationOTP.objects
+            .select_for_update()
+            .filter(user=user, is_used=False)
+            .order_by('-created_at')
+            .first()
+        )
+
+        if not otp_record or not otp_record.is_valid():
+            raise ValidationError({
+                'detail': 'Verification code has expired or maximum attempts exceeded. Please request a new code.'
+            })
+
+        if not otp_record.check_otp(code_to_check):
+            otp_record.attempts += 1
+            otp_record.save(update_fields=['attempts'])
+            remaining = 5 - otp_record.attempts
+            if remaining <= 0:
+                raise ValidationError({
+                    'detail': 'Maximum verification attempts exceeded. Please request a new code.'
+                })
+            raise ValidationError({
+                'detail': f'Invalid verification code. {remaining} attempt(s) remaining.'
+            })
+
+        # OTP is valid — activate account and mark code as used
         otp_record.is_used = True
         otp_record.save(update_fields=['is_used'])
 
@@ -164,9 +169,10 @@ def user_resend_otp(*, email: str) -> None:
                 'detail': f'Please wait {remaining} second(s) before requesting another code.'
             })
 
-    # Invalidate previous unused codes and generate new one
-    EmailVerificationOTP.objects.filter(user=user, is_used=False).update(is_used=True)
-    user_generate_otp(user)
+    with transaction.atomic():
+        # Invalidate previous unused codes and generate new one
+        EmailVerificationOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+        user_generate_otp(user)
 
 
 def user_authenticate(
@@ -177,9 +183,13 @@ def user_authenticate(
     """
     Authenticates a user via username or email with password.
     """
-    # Check if input is email
+    # Check if input is email or case-variant username
     if '@' in username:
         user_obj = User.objects.filter(email__iexact=username).first()
+        if user_obj:
+            username = user_obj.username
+    else:
+        user_obj = User.objects.filter(username__iexact=username).first()
         if user_obj:
             username = user_obj.username
 
@@ -193,6 +203,9 @@ def user_generate_tokens(*, user: User) -> Tuple[str, str]:
     refresh = RefreshToken.for_user(user)
     # Add custom claims if needed (e.g. is_staff)
     refresh['is_staff'] = user.is_staff
+    jti = refresh.get('jti')
+    if jti:
+        OutstandingToken.objects.filter(jti=jti).update(token=str(refresh))
     return str(refresh.access_token), str(refresh)
 
 
@@ -298,32 +311,37 @@ def user_request_email_change(
                 'detail': f'Please wait {remaining} second(s) before requesting another code.'
             })
 
-    # Invalidate previous unused email change codes
-    EmailVerificationOTP.objects.filter(user=user, purpose='email_change', is_used=False).update(is_used=True)
+    with transaction.atomic():
+        # Invalidate previous unused email change codes
+        EmailVerificationOTP.objects.filter(user=user, purpose='email_change', is_used=False).update(is_used=True)
 
-    code = f"{secrets.randbelow(900000) + 100000}"
-    expires_at = timezone.now() + timedelta(minutes=10)
+        code = f"{secrets.randbelow(900000) + 100000}"
+        expires_at = timezone.now() + timedelta(minutes=10)
 
-    EmailVerificationOTP.objects.create(
-        user=user,
-        otp_code=code,
-        new_email=normalized_new_email,
-        purpose='email_change',
-        expires_at=expires_at,
-    )
-
-    try:
-        send_email_change_otp_task.delay(
+        otp_record = EmailVerificationOTP(
+            user=user,
             new_email=normalized_new_email,
-            username=user.username,
-            otp_code=code
+            purpose='email_change',
+            expires_at=expires_at,
         )
-    except Exception:
-        send_email_change_otp_task(
-            new_email=normalized_new_email,
-            username=user.username,
-            otp_code=code
-        )
+        otp_record.set_otp(code)
+        otp_record.save()
+
+        def _dispatch_email_change_otp():
+            try:
+                send_email_change_otp_task.delay(
+                    new_email=normalized_new_email,
+                    username=user.username,
+                    otp_code=code
+                )
+            except Exception:
+                send_email_change_otp_task.apply(kwargs={
+                    'new_email': normalized_new_email,
+                    'username': user.username,
+                    'otp_code': code,
+                })
+
+        transaction.on_commit(_dispatch_email_change_otp)
 
     return code
 
@@ -345,52 +363,56 @@ def user_confirm_email_change(
     if User.objects.filter(email__iexact=normalized_new_email).exclude(id=user.id).exists():
         raise ValidationError({'new_email': 'A user with that email already exists.'})
 
-    otp_record = (
-        EmailVerificationOTP.objects
-        .filter(user=user, new_email__iexact=normalized_new_email, purpose='email_change', is_used=False)
-        .order_by('-created_at')
-        .first()
-    )
-
-    if not otp_record or not otp_record.is_valid():
-        raise ValidationError({
-            'detail': 'Verification code has expired or maximum attempts exceeded. Please request a new code.'
-        })
-
-    if otp_record.otp_code != code_to_check:
-        otp_record.attempts += 1
-        otp_record.save(update_fields=['attempts'])
-        remaining = 5 - otp_record.attempts
-        if remaining <= 0:
-            raise ValidationError({
-                'detail': 'Maximum verification attempts exceeded. Please request a new code.'
-            })
-        raise ValidationError({
-            'detail': f'Invalid verification code. {remaining} attempt(s) remaining.'
-        })
-
-    old_email = user.email
-
     with transaction.atomic():
+        otp_record = (
+            EmailVerificationOTP.objects
+            .select_for_update()
+            .filter(user=user, new_email__iexact=normalized_new_email, purpose='email_change', is_used=False)
+            .order_by('-created_at')
+            .first()
+        )
+
+        if not otp_record or not otp_record.is_valid():
+            raise ValidationError({
+                'detail': 'Verification code has expired or maximum attempts exceeded. Please request a new code.'
+            })
+
+        if not otp_record.check_otp(code_to_check):
+            otp_record.attempts += 1
+            otp_record.save(update_fields=['attempts'])
+            remaining = 5 - otp_record.attempts
+            if remaining <= 0:
+                raise ValidationError({
+                    'detail': 'Maximum verification attempts exceeded. Please request a new code.'
+                })
+            raise ValidationError({
+                'detail': f'Invalid verification code. {remaining} attempt(s) remaining.'
+            })
+
+        old_email = user.email
+
         otp_record.is_used = True
         otp_record.save(update_fields=['is_used'])
 
         user.email = normalized_new_email
         user.save(update_fields=['email'])
 
-    # Send security alert to old email
-    try:
-        send_email_changed_security_alert_task.delay(
-            old_email=old_email,
-            username=user.username,
-            new_email=normalized_new_email
-        )
-    except Exception:
-        send_email_changed_security_alert_task(
-            old_email=old_email,
-            username=user.username,
-            new_email=normalized_new_email
-        )
+        # Send security alert to old email after transaction commits successfully
+        def _dispatch_security_alert():
+            try:
+                send_email_changed_security_alert_task.delay(
+                    old_email=old_email,
+                    username=user.username,
+                    new_email=normalized_new_email
+                )
+            except Exception:
+                send_email_changed_security_alert_task.apply(kwargs={
+                    'old_email': old_email,
+                    'username': user.username,
+                    'new_email': normalized_new_email,
+                })
+
+        transaction.on_commit(_dispatch_security_alert)
 
     return user, old_email
 

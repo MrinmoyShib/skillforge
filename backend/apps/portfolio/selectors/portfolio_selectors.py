@@ -2,7 +2,7 @@
 Aggregation selector for public developer portfolio showcase.
 """
 from typing import Optional, Dict, Any
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q
 from apps.accounts.models import User
 from apps.problems.models import Category, Problem, Tag
 from apps.progress.models import UserProgress, ActivityLog
@@ -23,24 +23,32 @@ def get_public_portfolio(username: str) -> Optional[Dict[str, Any]]:
     profile = user.profile
 
     # 1. Track Mastery Breakdown
-    track_categories = Category.objects.filter(slug__in=['python', 'javascript', 'cpp']).order_by('display_order')
+    track_categories = list(Category.objects.filter(slug__in=['python', 'javascript', 'cpp']).order_by('display_order'))
+    cat_problem_counts = dict(
+        Problem.objects.filter(category__in=track_categories, is_published=True)
+        .values('category_id')
+        .annotate(c=Count('id'))
+        .values_list('category_id', 'c')
+    )
+
+    user_cat_stats = {
+        item['problem__category_id']: item
+        for item in UserProgress.objects.filter(
+            user=user,
+            problem__category__in=track_categories,
+            problem__is_published=True,
+            solved=True
+        )
+        .values('problem__category_id')
+        .annotate(solved_count=Count('id'), total_xp=Sum('xp_awarded'))
+    }
+
     tracks_data = []
-
     for cat in track_categories:
-        total_p = Problem.objects.filter(category=cat, is_published=True).count()
-        solved_count = UserProgress.objects.filter(
-            user=user,
-            problem__category=cat,
-            problem__is_published=True,
-            solved=True
-        ).count()
-        xp_earned = UserProgress.objects.filter(
-            user=user,
-            problem__category=cat,
-            problem__is_published=True,
-            solved=True
-        ).aggregate(total=Sum('xp_awarded'))['total'] or 0
-
+        total_p = cat_problem_counts.get(cat.id, 0)
+        stat = user_cat_stats.get(cat.id, {})
+        solved_count = stat.get('solved_count', 0)
+        xp_earned = stat.get('total_xp', 0) or 0
         percent = round((solved_count / total_p) * 100, 1) if total_p > 0 else 0.0
 
         tracks_data.append({
@@ -74,11 +82,22 @@ def get_public_portfolio(username: str) -> Optional[Dict[str, Any]]:
     ]
 
     # 3. Algorithmic Domain Mastery (by Tag)
-    solved_progress = UserProgress.objects.filter(user=user, solved=True).select_related('problem')
     tag_counts = (
-        Tag.objects.filter(problems__progress_records__in=solved_progress)
-        .annotate(solved_count=Count('problems'))
-        .order_by('-solved_count')[:10]
+        Tag.objects.filter(
+            problems__progress_records__user=user,
+            problems__progress_records__solved=True
+        )
+        .annotate(
+            solved_count=Count(
+                'problems',
+                filter=Q(
+                    problems__progress_records__user=user,
+                    problems__progress_records__solved=True
+                ),
+                distinct=True
+            )
+        )
+        .order_by('-solved_count', 'id')[:10]
     )
     skill_domains = [
         {
@@ -132,10 +151,9 @@ def get_public_portfolio(username: str) -> Optional[Dict[str, Any]]:
             "level_title": level_info['title'],
             "total_xp": profile.total_xp,
             "problems_solved_count": profile.problems_solved_count,
-            "current_streak_days": profile.current_streak_days,
+            "current_streak_days": profile.active_streak_days,
             "bio": getattr(profile, 'bio', '') or "Competitive programmer & full-stack software engineer.",
             "avatar_url": getattr(profile, 'avatar_url', '') or "",
-            "phone_number": getattr(profile, 'phone_number', '') or "",
             "github_url": getattr(profile, 'github_url', '') or "",
             "linkedin_url": getattr(profile, 'linkedin_url', '') or "",
             "twitter_url": getattr(profile, 'twitter_url', '') or "",

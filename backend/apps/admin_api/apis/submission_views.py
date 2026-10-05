@@ -55,9 +55,8 @@ class AdminSubmissionViewSet(viewsets.ReadOnlyModelViewSet):
         """
         submission = self.get_object()
         
-        # Execute evaluation task synchronously or in background
-        # Since admin is waiting for immediate feedback in the studio, execute synchronously
-        evaluate_submission_task(submission.id)
+        # Execute evaluation task synchronously using Celery's task runner
+        evaluate_submission_task.apply(args=[submission.id])
 
         # Refresh from database
         submission.refresh_from_db()

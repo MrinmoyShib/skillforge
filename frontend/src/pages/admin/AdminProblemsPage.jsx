@@ -1,19 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import adminService from '../../services/api/adminService';
+import { problemService } from '../../services/api/problemService';
 import Spinner from '../../components/feedback/Spinner';
 import { useToast } from '../../components/feedback/Toast';
+import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export default function AdminProblemsPage() {
   const toast = useToast();
   const [problems, setProblems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Filters
   const [search, setSearch] = useState('');
   const [language, setLanguage] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [isPublished, setIsPublished] = useState('');
+
+  const debouncedSearch = useDebounce(search, 300);
 
   // Edit / Create Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -37,7 +45,8 @@ export default function AdminProblemsPage() {
     constraints: '',
     input_format: '',
     output_format: '',
-    category_slug: 'algorithms',
+    category_id: '',
+    category_slug: '',
     test_cases: [
       { input_data: '', expected_output: '', is_sample: true, order: 1 }
     ]
@@ -48,17 +57,33 @@ export default function AdminProblemsPage() {
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await problemService.getCategories();
+        const list = Array.isArray(data) ? data : data?.results || [];
+        setCategories(list);
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   const fetchProblems = async () => {
     try {
       setLoading(true);
-      const params = {};
-      if (search) params.search = search;
+      const params = { page };
+      if (debouncedSearch) params.search = debouncedSearch;
       if (language) params.language = language;
       if (difficulty) params.difficulty = difficulty;
       if (isPublished !== '') params.is_published = isPublished;
 
       const data = await adminService.getProblems(params);
       setProblems(data.results || data);
+      if (data.count != null) {
+        setTotalCount(data.count);
+      }
       setError(null);
     } catch (err) {
       setError(err?.response?.data?.detail || 'Failed to load problems.');
@@ -68,11 +93,16 @@ export default function AdminProblemsPage() {
   };
 
   useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, language, difficulty, isPublished]);
+
+  useEffect(() => {
     fetchProblems();
-  }, [search, language, difficulty, isPublished]);
+  }, [page, debouncedSearch, language, difficulty, isPublished]);
 
   const handleOpenCreate = () => {
     setEditingProblem(null);
+    const defaultCat = categories.length > 0 ? categories[0] : null;
     setFormData({
       title: '',
       slug: '',
@@ -88,7 +118,8 @@ export default function AdminProblemsPage() {
       constraints: '',
       input_format: '',
       output_format: '',
-      category_slug: 'algorithms',
+      category_id: defaultCat ? defaultCat.id : '',
+      category_slug: defaultCat ? defaultCat.slug : '',
       test_cases: [
         { input_data: '', expected_output: '', is_sample: true, order: 1 }
       ]
@@ -104,6 +135,8 @@ export default function AdminProblemsPage() {
       setLoading(true);
       const detail = await adminService.getProblem(problem.id);
       setEditingProblem(detail);
+      const catId = detail.category_id || detail.category?.id || (typeof detail.category === 'number' ? detail.category : '');
+      const catSlug = detail.category?.slug || '';
       setFormData({
         title: detail.title,
         slug: detail.slug,
@@ -119,7 +152,8 @@ export default function AdminProblemsPage() {
         constraints: detail.constraints || '',
         input_format: detail.input_format || '',
         output_format: detail.output_format || '',
-        category_id: detail.category_id,
+        category_id: catId,
+        category_slug: catSlug,
         test_cases: detail.test_cases?.length ? detail.test_cases : [
           { input_data: '', expected_output: '', is_sample: true, order: 1 }
         ]
@@ -388,6 +422,15 @@ export default function AdminProblemsPage() {
             </table>
           </div>
         )}
+
+        {problems.length > 0 && (
+          <Pagination
+            currentPage={page}
+            totalCount={totalCount || problems.length}
+            pageSize={20}
+            onPageChange={setPage}
+          />
+        )}
       </div>
 
       {/* Create / Edit Problem Studio Modal */}
@@ -470,6 +513,30 @@ export default function AdminProblemsPage() {
                       placeholder="e.g. invert-binary-tree"
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono uppercase text-slate-400 mb-1">Category *</label>
+                    <select
+                      value={formData.category_id || ''}
+                      onChange={(e) => {
+                        const selectedId = parseInt(e.target.value) || '';
+                        const selectedCat = categories.find((c) => c.id === selectedId);
+                        setFormData({
+                          ...formData,
+                          category_id: selectedId,
+                          category_slug: selectedCat ? selectedCat.slug : '',
+                        });
+                      }}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="">Select Category</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>

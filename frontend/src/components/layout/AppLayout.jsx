@@ -1,12 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
+import Spinner from '../feedback/Spinner';
 
 export default function AppLayout() {
   const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
 
   const handleLogout = async () => {
     await logout();
@@ -317,7 +328,13 @@ export default function AppLayout() {
 
       {/* Main Content Body */}
       <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0">
-        <Outlet />
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-[300px]">
+            <Spinner size="lg" />
+          </div>
+        }>
+          <Outlet />
+        </Suspense>
       </main>
 
       {/* Footer */}

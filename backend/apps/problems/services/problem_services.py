@@ -27,6 +27,7 @@ def problem_create(
     challenge_level: int = 1,
     category_id: int,
     tag_ids: Optional[List[int]] = None,
+    test_cases: Optional[List[Dict[str, Any]]] = None,
     xp_reward: Optional[int] = None,
     constraints: str = "",
     input_format: str = "",
@@ -39,7 +40,7 @@ def problem_create(
     is_published: bool = False
 ) -> Problem:
     """
-    Creates a new problem and associates tags atomically.
+    Creates a new problem and associates tags and test cases atomically.
     """
     if xp_reward is None or xp_reward <= 0:
         xp_reward = get_default_xp_reward(difficulty)
@@ -67,6 +68,16 @@ def problem_create(
 
         if tag_ids:
             problem.tags.set(tag_ids)
+
+        if test_cases:
+            for idx, tc in enumerate(test_cases):
+                TestCase.objects.create(
+                    problem=problem,
+                    input_data=tc.get('input_data', ''),
+                    expected_output=tc.get('expected_output', ''),
+                    is_sample=tc.get('is_sample', False),
+                    order=tc.get('order', idx + 1),
+                )
 
         return problem
 

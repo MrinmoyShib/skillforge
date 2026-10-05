@@ -32,7 +32,7 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str =
             httponly=jwt_conf.get('AUTH_COOKIE_HTTP_ONLY', True),
             secure=jwt_conf.get('AUTH_COOKIE_SECURE', False),
             samesite=jwt_conf.get('AUTH_COOKIE_SAMESITE', 'Lax'),
-            path=jwt_conf.get('REFRESH_COOKIE_PATH', '/api/v1/auth/token/refresh/'),
+            path=jwt_conf.get('REFRESH_COOKIE_PATH', '/api/v1/auth/'),
             domain=jwt_conf.get('AUTH_COOKIE_DOMAIN', None),
         )
     return response
@@ -51,7 +51,7 @@ def clear_auth_cookies(response: Response) -> Response:
     )
     response.delete_cookie(
         key=jwt_conf.get('REFRESH_COOKIE', 'refresh_token'),
-        path=jwt_conf.get('REFRESH_COOKIE_PATH', '/api/v1/auth/token/refresh/'),
+        path=jwt_conf.get('REFRESH_COOKIE_PATH', '/api/v1/auth/'),
         domain=jwt_conf.get('AUTH_COOKIE_DOMAIN', None),
         samesite=jwt_conf.get('AUTH_COOKIE_SAMESITE', 'Lax'),
     )

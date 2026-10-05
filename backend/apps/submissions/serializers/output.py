@@ -71,6 +71,14 @@ class SubmissionDetailOutputSerializer(serializers.Serializer):
     passed_test_cases_count = serializers.IntegerField()
     total_test_cases_count = serializers.IntegerField()
     is_sample_run = serializers.BooleanField()
-    results = SubmissionResultOutputSerializer(many=True, source='results.all')
+    results = SubmissionResultOutputSerializer(many=True)
+    xp_awarded = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField()
+
+    def get_xp_awarded(self, obj) -> int:
+        record = getattr(obj, 'progress_records', None)
+        if record:
+            prog = record.filter(solved=True).first()
+            return prog.xp_awarded if prog else 0
+        return 0
 

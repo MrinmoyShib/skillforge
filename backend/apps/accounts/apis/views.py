@@ -235,6 +235,12 @@ class LogoutAPI(APIView):
 
         if raw_refresh_token:
             token_blacklist_refresh(refresh_token_str=raw_refresh_token)
+        elif request.user and request.user.is_authenticated:
+            # Fallback: blacklist outstanding tokens for this user if cookie is missing
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+            tokens = OutstandingToken.objects.filter(user=request.user)
+            for token in tokens:
+                BlacklistedToken.objects.get_or_create(token=token)
 
         response = Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
         return clear_auth_cookies(response)

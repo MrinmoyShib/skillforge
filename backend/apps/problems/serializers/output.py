@@ -98,6 +98,12 @@ class AdminProblemDetailOutputSerializer(serializers.Serializer):
     time_limit_seconds = serializers.FloatField()
     memory_limit_kb = serializers.IntegerField()
     is_published = serializers.BooleanField()
-    test_cases = AdminTestCaseOutputSerializer(many=True, source='test_cases.all')
+    test_cases = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
+
+    def get_test_cases(self, obj):
+        test_cases = getattr(obj, 'test_cases_list', None)
+        if test_cases is None:
+            test_cases = obj.test_cases.all()
+        return AdminTestCaseOutputSerializer(test_cases, many=True).data

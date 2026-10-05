@@ -53,8 +53,10 @@ class TestAuthenticationAPI:
         assert otp is not None
 
         # Verify OTP activates user and sets HttpOnly cookies
+        otp.set_otp("123456")
+        otp.save(update_fields=['otp_code'])
         verify_url = reverse('auth-verify-otp')
-        verify_res = api_client.post(verify_url, {"email": "newdev@example.com", "otp_code": otp.otp_code}, format='json')
+        verify_res = api_client.post(verify_url, {"email": "newdev@example.com", "otp_code": "123456"}, format='json')
         assert verify_res.status_code == 200
         user.refresh_from_db()
         assert user.is_active is True
@@ -83,6 +85,42 @@ class TestAuthenticationAPI:
         response = api_client.post(url, data=payload, format='json')
         assert response.status_code == 400
 
+    def test_register_invalid_username_characters(self):
+        from apps.accounts.serializers.input import RegisterInputSerializer
+        invalid_usernames = [
+            "alex/smith",
+            "alex smith",
+            "alex@domain.com",
+            "alex#dev",
+            "alex!cool",
+            "alex<script>",
+        ]
+        for uname in invalid_usernames:
+            serializer = RegisterInputSerializer(data={
+                "username": uname,
+                "email": "test@example.com",
+                "password": "StrongPassword123!"
+            })
+            assert not serializer.is_valid()
+            assert "username" in serializer.errors
+            assert "letters, numbers, underscores" in str(serializer.errors["username"])
+
+    def test_register_valid_username_with_hyphen_and_underscore(self):
+        from apps.accounts.serializers.input import RegisterInputSerializer
+        serializer = RegisterInputSerializer(data={
+            "username": "alex-smith_99",
+            "email": "alex99@example.com",
+            "password": "StrongPassword123!"
+        })
+        assert serializer.is_valid(), serializer.errors
+
+    def test_update_profile_invalid_username(self):
+        from apps.accounts.serializers.input import ProfileUpdateInputSerializer
+        serializer = ProfileUpdateInputSerializer(data={"username": "bad/username"})
+        assert not serializer.is_valid()
+        assert "username" in serializer.errors
+        assert "letters, numbers, underscores" in str(serializer.errors["username"])
+
     def test_login_success(self, api_client, registered_user):
         url = reverse('auth-login')
         payload = {
@@ -106,6 +144,7 @@ class TestAuthenticationAPI:
         assert response.data["code"] == "authentication_failed"
 
     def test_logout(self, api_client, registered_user):
+        from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
         access_token, refresh_token = user_generate_tokens(user=registered_user)
         api_client.cookies["access_token"] = access_token
         api_client.cookies["refresh_token"] = refresh_token
@@ -114,9 +153,31 @@ class TestAuthenticationAPI:
         response = api_client.post(url)
         assert response.status_code == 200
 
-        # Cookies should be expired/deleted
+        # Cookies should be expired/deleted with scoped path
         assert response.cookies["access_token"].value == ""
         assert response.cookies["refresh_token"].value == ""
+        assert response.cookies["refresh_token"]["path"] == "/api/v1/auth/"
+
+        # Refresh token must be blacklisted in database
+        assert BlacklistedToken.objects.filter(token__token=refresh_token).exists()
+
+        # Subsequent attempt to refresh using blacklisted token must fail with 401
+        api_client.cookies["refresh_token"] = refresh_token
+        refresh_response = api_client.post(reverse('auth-token-refresh'))
+        assert refresh_response.status_code == 401
+
+    def test_logout_fallback_blacklists_user_outstanding_tokens(self, api_client, registered_user):
+        from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
+        access_token, refresh_token = user_generate_tokens(user=registered_user)
+        api_client.cookies["access_token"] = access_token
+        # refresh_token cookie is omitted to test fallback blacklisting of authenticated user's tokens
+
+        url = reverse('auth-logout')
+        response = api_client.post(url)
+        assert response.status_code == 200
+
+        # User's outstanding tokens should be blacklisted via fallback
+        assert BlacklistedToken.objects.filter(token__token=refresh_token).exists()
 
     def test_me_endpoint_authenticated(self, api_client, registered_user):
         access_token, _ = user_generate_tokens(user=registered_user)

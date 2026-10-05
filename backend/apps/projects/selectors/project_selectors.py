@@ -48,7 +48,7 @@ def project_list(*, user=None, filters: Optional[Dict[str, Any]] = None) -> List
             "technologies": p.technologies or [],
             "xp_reward": p.xp_reward,
             "estimated_minutes": p.estimated_minutes,
-            "milestones_count": p.milestones.count(),
+            "milestones_count": len(p.milestones.all()),
             "user_status": u_status,
             "completed_milestones_count": completed_count,
         })

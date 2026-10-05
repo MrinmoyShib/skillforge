@@ -14,7 +14,6 @@ class PortfolioUserSerializer(serializers.Serializer):
     current_streak_days = serializers.IntegerField()
     bio = serializers.CharField(allow_blank=True)
     avatar_url = serializers.CharField(allow_blank=True, default='')
-    phone_number = serializers.CharField(allow_blank=True, default='')
     github_url = serializers.CharField(allow_blank=True, default='')
     linkedin_url = serializers.CharField(allow_blank=True, default='')
     twitter_url = serializers.CharField(allow_blank=True, default='')

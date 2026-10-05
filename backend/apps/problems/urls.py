@@ -1,18 +1,19 @@
 """
-URL routing for problems, categories, tags, and admin problem management.
+URL routing for problems, categories, and tags.
 """
 from django.urls import path
+from apps.admin_api.apis.problem_views import AdminProblemViewSet
 from .apis.views import (
     ProblemListAPI,
     ProblemDetailAPI,
     CategoryListAPI,
     TagListAPI,
 )
-from .apis.admin_views import (
-    AdminProblemListCreateAPI,
-    AdminProblemDetailAPI,
-    AdminTestCaseListCreateAPI,
-    AdminTestCaseDetailAPI,
+
+admin_problem_list = AdminProblemViewSet.as_view({'get': 'list', 'post': 'create'})
+admin_problem_detail = AdminProblemViewSet.as_view(
+    {'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'},
+    lookup_url_kwarg='problem_id'
 )
 
 urlpatterns = [
@@ -22,10 +23,8 @@ urlpatterns = [
     path('problems/', ProblemListAPI.as_view(), name='problem-list'),
     path('problems/<slug:slug>/', ProblemDetailAPI.as_view(), name='problem-detail'),
 
-    # Legacy Admin Endpoints (for backwards compatibility with test_problems_api.py)
-    path('admin/problems/', AdminProblemListCreateAPI.as_view(), name='admin-problem-list-create'),
-    path('admin/problems/<int:problem_id>/', AdminProblemDetailAPI.as_view(), name='admin-problem-detail'),
-    path('admin/problems/<int:problem_id>/test-cases/', AdminTestCaseListCreateAPI.as_view(), name='admin-test-case-list-create'),
-    path('admin/test-cases/<int:test_case_id>/', AdminTestCaseDetailAPI.as_view(), name='admin-test-case-detail'),
+    # Canonical Admin Problem Routes (Delegated to apps.admin_api)
+    path('admin/problems/', admin_problem_list, name='admin-problem-list-create'),
+    path('admin/problems/<int:problem_id>/', admin_problem_detail, name='admin-problem-detail'),
 ]
 

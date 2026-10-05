@@ -20,6 +20,10 @@ def submission_create(
     """
     problem = Problem.objects.get(id=problem_id, is_published=True)
 
+    if problem.language and language != problem.language:
+        from rest_framework.exceptions import ValidationError
+        raise ValidationError({"language": f"This challenge is designed for {problem.language.capitalize()} Track only."})
+
     with transaction.atomic():
         submission = Submission.objects.create(
             user=user,

@@ -190,3 +190,61 @@ class TestProblemsAPI:
         assert response.data['title'] == "Merge Sorted Lists"
         assert response.data['slug'] == "merge-sorted-lists"
 
+    def test_admin_create_problem_with_category_slug_and_test_cases(self, admin_client):
+        url = reverse('admin-problem-list-create')
+        payload = {
+            "title": "Two Sum Problem",
+            "description": "Find indices of two numbers that add up to target.",
+            "difficulty": "easy",
+            "challenge_level": 1,
+            "category_slug": "algorithms",
+            "xp_reward": 50,
+            "test_cases": [
+                {"input_data": "2 7 11 15\n9", "expected_output": "0 1", "is_sample": True, "order": 1},
+                {"input_data": "3 2 4\n6", "expected_output": "1 2", "is_sample": False, "order": 2},
+            ],
+            "is_published": True
+        }
+        response = admin_client.post(url, data=payload, format='json')
+        assert response.status_code == 201
+        assert response.data['title'] == "Two Sum Problem"
+        created_prob = Problem.objects.get(id=response.data['id'])
+        assert created_prob.category.slug == "algorithms"
+        assert created_prob.test_cases.count() == 2
+        sample_tc = created_prob.test_cases.filter(is_sample=True).first()
+        assert sample_tc is not None
+        assert sample_tc.expected_output == "0 1"
+
+    def test_problem_slug_collision_resolution(self, setup_problem):
+        _, category, *_ = setup_problem
+        p1 = Problem.objects.create(
+            title="Duplicate Title",
+            description="First problem",
+            difficulty="easy",
+            category=category,
+        )
+        assert p1.slug == "duplicate-title"
+
+        p2 = Problem.objects.create(
+            title="Duplicate Title",
+            description="Second problem with identical title",
+            difficulty="easy",
+            category=category,
+        )
+        assert p2.slug == "duplicate-title-1"
+
+        p3 = Problem.objects.create(
+            title="Duplicate Title",
+            description="Third problem with identical title",
+            difficulty="easy",
+            category=category,
+        )
+        assert p3.slug == "duplicate-title-2"
+
+    def test_admin_update_problem_invalid_category_fails_cleanly(self, admin_client, setup_problem):
+        sample_problem, *_ = setup_problem
+        url = reverse('admin-problem-detail', kwargs={'problem_id': sample_problem.id})
+        response = admin_client.patch(url, data={"category_id": 999999}, format='json')
+        assert response.status_code == 400
+        assert "category_id" in response.data or "detail" in response.data
+

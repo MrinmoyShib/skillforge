@@ -127,11 +127,28 @@ class TestSubmissionsAPI:
         assert response.data['problem_id'] == coding_problem.id
 
     def test_synchronous_evaluation_execution(self, student_user, coding_problem):
+        real_cpp_solution = (
+            "#include <iostream>\n"
+            "using namespace std;\n"
+            "int main() {\n"
+            "    int n;\n"
+            "    if (cin >> n) {\n"
+            "        long long p = 1;\n"
+            "        for (int i = 0; i < n; i++) {\n"
+            "            long long x;\n"
+            "            cin >> x;\n"
+            "            p *= x;\n"
+            "        }\n"
+            "        cout << p << endl;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n"
+        )
         submission = Submission.objects.create(
             user=student_user,
             problem=coding_problem,
             language='cpp',
-            source_code="#include <iostream>\nusing namespace std;\nint main() {\n    cout << 6 << endl;\n    return 0;\n}",
+            source_code=real_cpp_solution,
             status=SubmissionStatus.PENDING
         )
         # Directly run the Celery task synchronously
@@ -148,7 +165,7 @@ class TestSubmissionsAPI:
             user=student_user,
             problem=coding_problem,
             language='cpp',
-            source_code="#include <iostream>\nint main() { return 0; }",
+            source_code="// # mock_accepted\n#include <iostream>\nint main() { return 0; }",
             is_sample_run=True,
             status=SubmissionStatus.PENDING
         )
@@ -163,7 +180,7 @@ class TestSubmissionsAPI:
             user=student_user,
             problem=coding_problem,
             language='cpp',
-            source_code="#include <iostream>\nint main() { return 0; }",
+            source_code="// # mock_accepted\n#include <iostream>\nint main() { return 0; }",
             status=SubmissionStatus.PENDING
         )
         evaluate_submission_task(submission.id)
@@ -190,7 +207,7 @@ class TestSubmissionsAPI:
             user=student_user,
             problem=coding_problem,
             language='cpp',
-            source_code="#include <iostream>\nint main() { return 0; }",
+            source_code="// # mock_accepted\n#include <iostream>\nint main() { return 0; }",
             status=SubmissionStatus.PENDING
         )
         evaluate_submission_task(submission.id)
@@ -227,7 +244,7 @@ class TestSubmissionsAPI:
             user=student_user,
             problem=coding_problem,
             language='cpp',
-            source_code="#include <iostream>\nint main() { return 0; }",
+            source_code="// # mock_accepted\n#include <iostream>\nint main() { return 0; }",
             status=SubmissionStatus.PENDING
         )
         evaluate_submission_task(sub1.id)
@@ -241,7 +258,7 @@ class TestSubmissionsAPI:
             user=student_user,
             problem=coding_problem,
             language='cpp',
-            source_code="#include <iostream>\nint main() { return 0; }",
+            source_code="// # mock_accepted\n#include <iostream>\nint main() { return 0; }",
             status=SubmissionStatus.PENDING
         )
         evaluate_submission_task(sub2.id)
@@ -319,15 +336,149 @@ class TestSubmissionsAPI:
         assert sub.passed_test_cases_count == 0
 
     def test_javascript_submission_evaluation(self, student_user, coding_problem):
+        js_solution = (
+            "const fs = require('fs');\n"
+            "const tokens = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);\n"
+            "if (tokens.length > 1) {\n"
+            "    const n = parseInt(tokens[0], 10);\n"
+            "    let prod = 1;\n"
+            "    for (let i = 1; i <= n; i++) {\n"
+            "        prod *= parseInt(tokens[i], 10);\n"
+            "    }\n"
+            "    console.log(prod);\n"
+            "}\n"
+        )
         sub = Submission.objects.create(
             user=student_user,
             problem=coding_problem,
             language='javascript',
-            source_code="const fs = require('fs');\nfunction solve() { console.log(1); }\nsolve();",
+            source_code=js_solution,
             status=SubmissionStatus.PENDING
         )
         evaluate_submission_task(sub.id)
         sub.refresh_from_db()
         assert sub.status == SubmissionStatus.ACCEPTED
         assert sub.language == 'javascript'
+        assert sub.passed_test_cases_count == 2
+
+    def test_cpp_submission_unsolved_code_fails_evaluation(self, student_user, coding_problem):
+        """
+        Verify empty starter / unsolved C++ boilerplate fails evaluation
+        with WRONG_ANSWER and 0 passed cases, and awards NO XP.
+        """
+        initial_xp = student_user.profile.total_xp
+        unsolved_code = (
+            "#include <iostream>\n"
+            "#include <vector>\n"
+            "using namespace std;\n\n"
+            "int main() {\n"
+            "    // Write your solution here\n"
+            "    return 0;\n"
+            "}\n"
+        )
+        sub = Submission.objects.create(
+            user=student_user,
+            problem=coding_problem,
+            language='cpp',
+            source_code=unsolved_code,
+            status=SubmissionStatus.PENDING
+        )
+        evaluate_submission_task(sub.id)
+        sub.refresh_from_db()
+        assert sub.status == SubmissionStatus.WRONG_ANSWER
+        assert sub.passed_test_cases_count == 0
+        student_user.profile.refresh_from_db()
+        assert student_user.profile.total_xp == initial_xp
+
+    def test_javascript_submission_unsolved_code_fails_evaluation(self, student_user, coding_problem):
+        """
+        Verify empty starter / unsolved JavaScript boilerplate fails evaluation
+        with WRONG_ANSWER and 0 passed cases.
+        """
+        unsolved_code = "function solve() {}\nsolve();"
+        sub = Submission.objects.create(
+            user=student_user,
+            problem=coding_problem,
+            language='javascript',
+            source_code=unsolved_code,
+            status=SubmissionStatus.PENDING
+        )
+        evaluate_submission_task(sub.id)
+        sub.refresh_from_db()
+        assert sub.status == SubmissionStatus.WRONG_ANSWER
+        assert sub.passed_test_cases_count == 0
+
+    def test_submission_rejects_unsupported_language(self, student_client, coding_problem):
+        """
+        Verify BUG-044 fix: invalid or unsupported language choices are rejected by the serializer.
+        """
+        url = reverse('submission-list-create')
+        payload = {
+            "problem_id": coding_problem.id,
+            "source_code": "fn main() { println!(\"hello\"); }",
+            "language": "rust",
+            "is_sample_run": False
+        }
+        response = student_client.post(url, data=payload, format='json')
+        assert response.status_code == 400
+        errors = response.data.get("errors", response.data)
+        assert "language" in errors
+
+    def test_submission_rejects_mismatched_problem_language(self, student_client, coding_problem):
+        """
+        Verify BUG-044 fix: submitting a solution in a language that does not match
+        the problem's target track language is rejected.
+        """
+        url = reverse('submission-list-create')
+        payload = {
+            "problem_id": coding_problem.id,  # problem.language is 'cpp'
+            "source_code": "def solve(): return 42",
+            "language": "python",
+            "is_sample_run": False
+        }
+        response = student_client.post(url, data=payload, format='json')
+        assert response.status_code == 400
+        errors = response.data.get("errors", response.data)
+        assert "language" in errors
+        assert "designed for" in str(errors["language"])
+
+    def test_submission_task_handles_transient_failure_and_retries(self, student_user, coding_problem, monkeypatch):
+        """
+        Verify BUG-013 fix: evaluate_submission_task invokes self.retry when transient exceptions occur.
+        """
+        from unittest.mock import MagicMock
+        from apps.submissions.engine.base import AbstractExecutionEngine, ExecutionResult
+
+        sub = Submission.objects.create(
+            user=student_user,
+            problem=coding_problem,
+            language='cpp',
+            source_code="int main() { return 0; }",
+            status=SubmissionStatus.PENDING
+        )
+
+        retry_called = []
+
+        # Mock evaluate_submission_task.retry to record invocation
+        def fake_retry(*args, **kwargs):
+            retry_called.append(True)
+            raise evaluate_submission_task.MaxRetriesExceededError("Max retries exceeded")
+
+        monkeypatch.setattr(evaluate_submission_task, "retry", fake_retry)
+
+        # Mock engine to raise transient connection error
+        class BrokenEngine(AbstractExecutionEngine):
+            def is_available(self):
+                return True
+
+            def execute(self, **kwargs):
+                raise ConnectionResetError("Docker daemon socket timed out")
+
+        monkeypatch.setattr("apps.submissions.tasks.get_execution_engine", lambda: BrokenEngine())
+
+        evaluate_submission_task(sub.id)
+        sub.refresh_from_db()
+        assert retry_called == [True]
+        assert sub.status == SubmissionStatus.INTERNAL_ERROR
+        assert "Docker daemon socket timed out" in sub.error_message
 

@@ -14,6 +14,26 @@ const PRESET_AVATARS = [
   'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
 ];
 
+const extractErrorMessage = (err, defaultMessage) => {
+  const data = err?.response?.data;
+  if (!data) return defaultMessage;
+  if (typeof data === 'string') return data;
+  if (data.detail) {
+    if (typeof data.detail === 'string') return data.detail;
+    if (typeof data.detail === 'object') {
+      const firstKey = Object.keys(data.detail)[0];
+      const val = data.detail[firstKey];
+      return `${firstKey}: ${Array.isArray(val) ? val[0] : val}`;
+    }
+  }
+  if (typeof data === 'object') {
+    const firstKey = Object.keys(data)[0];
+    const val = data[firstKey];
+    return `${firstKey}: ${Array.isArray(val) ? val[0] : val}`;
+  }
+  return defaultMessage;
+};
+
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth();
   const toast = useToast();
@@ -231,13 +251,7 @@ export default function SettingsPage() {
       setTimeout(() => setProfileSuccess(''), 4000);
     } catch (err) {
       console.error('Failed to update profile:', err);
-      const detail = err?.response?.data?.detail;
-      if (typeof detail === 'object') {
-        const firstKey = Object.keys(detail)[0];
-        setProfileError(`${firstKey}: ${detail[firstKey]}`);
-      } else {
-        setProfileError(detail || 'Failed to update profile. Please try again.');
-      }
+      setProfileError(extractErrorMessage(err, 'Failed to update profile. Please try again.'));
     } finally {
       setProfileSaving(false);
     }
@@ -265,13 +279,7 @@ export default function SettingsPage() {
       setTimeout(() => setPasswordSuccess(''), 4000);
     } catch (err) {
       console.error('Failed to change password:', err);
-      const detail = err?.response?.data?.detail;
-      if (typeof detail === 'object') {
-        const firstKey = Object.keys(detail)[0];
-        setPasswordError(`${firstKey}: ${detail[firstKey]}`);
-      } else {
-        setPasswordError(detail || 'Failed to change password. Check your current password.');
-      }
+      setPasswordError(extractErrorMessage(err, 'Failed to change password. Check your current password.'));
     } finally {
       setPasswordSaving(false);
     }

@@ -18,9 +18,16 @@ urlpatterns = [
     path('api/v1/portfolio/', include('apps.portfolio.urls')),
 ]
 
+from rest_framework.permissions import AllowAny, IsAdminUser
+
+doc_permissions = [AllowAny] if settings.DEBUG else [IsAdminUser]
+
+urlpatterns += [
+    path('api/schema/', SpectacularAPIView.as_view(permission_classes=doc_permissions), name='schema'),
+    path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='schema', permission_classes=doc_permissions), name='swagger-ui'),
+    path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='schema', permission_classes=doc_permissions), name='redoc'),
+]
+
 if settings.DEBUG:
-    urlpatterns += [
-        path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-        path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-        path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    ]
+    from django.conf.urls.static import static
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

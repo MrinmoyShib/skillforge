@@ -5,6 +5,7 @@ import logging
 from django.db import transaction
 from django.db.models import Count
 from apps.progress.models import UserProgress, ActivityLog
+from apps.progress.services.leveling import calculate_level
 from ..models import Achievement, UserAchievement
 
 logger = logging.getLogger(__name__)
@@ -84,7 +85,23 @@ def check_and_grant_achievements(user) -> list[Achievement]:
                 logger.info(f"Granted achievement '{ach.name}' to user {user.username}.")
 
         if bonus_xp_total > 0:
+            old_level = profile.current_level
             profile.total_xp += bonus_xp_total
-            profile.save(update_fields=['total_xp'])
+            level_info = calculate_level(profile.total_xp)
+            new_level = level_info['level']
+            profile.current_level = new_level
+            profile.save(update_fields=['total_xp', 'current_level'])
+
+            if new_level > old_level:
+                ActivityLog.objects.create(
+                    user=user,
+                    activity_type=ActivityLog.ActivityType.LEVEL_UP,
+                    description=f"Leveled up to Level {new_level} — {level_info['title']}!",
+                    metadata={
+                        "level": new_level,
+                        "title": level_info['title'],
+                        "total_xp": profile.total_xp
+                    }
+                )
 
     return newly_granted

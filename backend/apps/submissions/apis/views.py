@@ -8,6 +8,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import NotFound
 from drf_spectacular.utils import extend_schema
 
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.exceptions import Throttled
+from ..models import Submission, SubmissionStatus
 from apps.core.pagination import StandardPagination
 from ..serializers.input import (
     SubmissionCreateInputSerializer,
@@ -31,6 +34,8 @@ class SubmissionListCreateAPI(APIView):
     """
     permission_classes = [IsAuthenticated]
     pagination_class = StandardPagination
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'submissions'
 
     @extend_schema(
         summary="Create Submission",
@@ -41,6 +46,14 @@ class SubmissionListCreateAPI(APIView):
     def post(self, request):
         serializer = SubmissionCreateInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Enforce maximum concurrent active submissions per user to prevent queue saturation
+        active_count = Submission.objects.filter(
+            user=request.user,
+            status__in=[SubmissionStatus.PENDING, SubmissionStatus.PROCESSING]
+        ).count()
+        if active_count >= 5:
+            raise Throttled(detail="You have too many pending submissions being evaluated. Please wait for them to finish.")
 
         submission = submission_create(user=request.user, **serializer.validated_data)
         output_serializer = SubmissionDetailOutputSerializer(submission, context={'request': request})

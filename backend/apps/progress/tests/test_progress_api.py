@@ -123,3 +123,24 @@ class TestProgressAPI:
         assert profile.current_streak_days == 3
         assert profile.last_solve_date == timezone.now().date()
 
+    def test_level_requirement_cache_invalidation(self, db):
+        from django.core.cache import cache
+        from apps.progress.services.leveling import get_level_requirements
+
+        # Populate cache
+        reqs1 = get_level_requirements()
+        assert cache.get('level_requirements') is not None
+
+        # Mutate via save()
+        lvl = LevelRequirement.objects.create(level=99, xp_threshold=99999, title="Deity")
+        assert cache.get('level_requirements') is None
+
+        # Re-populate cache
+        reqs2 = get_level_requirements()
+        assert cache.get('level_requirements') is not None
+
+        # Mutate via delete()
+        lvl.delete()
+        assert cache.get('level_requirements') is None
+
+

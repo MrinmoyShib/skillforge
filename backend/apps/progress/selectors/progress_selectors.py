@@ -23,7 +23,7 @@ def get_user_progress_summary(user) -> dict:
         "next_level_xp": level_info['next_level_xp'],
         "progress_percent": level_info['progress_percent'],
         "problems_solved_count": profile.problems_solved_count,
-        "current_streak_days": profile.current_streak_days,
+        "current_streak_days": profile.active_streak_days,
         "last_solve_date": profile.last_solve_date,
     }
 

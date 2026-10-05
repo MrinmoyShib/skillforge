@@ -59,7 +59,7 @@ services:
     container_name: skillforge-celery-prod
     restart: always
     entrypoint: []
-    command: ["celery", "-A", "config", "worker", "-l", "info", "-c", "4"]
+    command: ["celery", "-A", "config", "worker", "-l", "info", "-Q", "high_priority,submissions,celery", "-c", "4"]
     env_file:
       - path: ../.env.prod
         required: false
@@ -85,6 +85,27 @@ services:
       - media-prod:/app/media:ro
     depends_on:
       - django
+    networks:
+      - skillforge-net
+
+  db-backup:
+    image: prodrigestivill/postgres-backup-local:16-alpine
+    container_name: skillforge-db-backup-prod
+    restart: always
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-skillforge}
+      POSTGRES_USER: ${POSTGRES_USER:-skillforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+    volumes:
+      - ../backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - skillforge-net
 

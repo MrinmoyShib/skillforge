@@ -3,6 +3,7 @@ Celery asynchronous task for executing and grading code submissions.
 """
 import logging
 from celery import shared_task
+from celery.exceptions import MaxRetriesExceededError, Retry
 from django.db import transaction
 from django.utils import timezone
 from apps.problems.models import TestCase
@@ -138,6 +139,17 @@ def evaluate_submission_task(self, submission_id: int):
             "total": submission.total_test_cases_count
         }
     except Exception as e:
+        logger.exception(f"Error evaluating submission {submission_id}: {e}")
+        try:
+            if hasattr(self, 'request') and getattr(self.request, 'retries', 0) < self.max_retries:
+                raise self.retry(exc=e, countdown=5)
+        except (MaxRetriesExceededError, self.MaxRetriesExceededError):
+            pass
+        except Retry:
+            raise
+        except Exception:
+            pass
+
         submission.status = SubmissionStatus.INTERNAL_ERROR
         submission.error_message = str(e)
         submission.save(update_fields=['status', 'error_message'])

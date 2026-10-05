@@ -70,6 +70,15 @@ TEMPLATES = [
     },
 ]
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': env('REDIS_CACHE_URL', default=env('CELERY_BROKER_URL', default='redis://redis:6379/1')),
+        'TIMEOUT': 300,
+        'KEY_PREFIX': 'skillforge',
+    }
+}
+
 WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
@@ -109,6 +118,7 @@ REST_FRAMEWORK = {
         'anon': '30/minute',
         'user': '60/minute',
         'auth': '10/minute',
+        'submissions': '30/minute',
     }
 }
 
@@ -123,7 +133,7 @@ SIMPLE_JWT = {
     'AUTH_COOKIE_SECURE': False,
     'AUTH_COOKIE_SAMESITE': 'Lax',
     'AUTH_COOKIE_PATH': '/',
-    'REFRESH_COOKIE_PATH': '/api/v1/auth/token/refresh/',
+    'REFRESH_COOKIE_PATH': '/api/v1/auth/',
 }
 
 SPECTACULAR_SETTINGS = {
@@ -134,6 +144,14 @@ SPECTACULAR_SETTINGS = {
 
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://redis:6379/0')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379/0')
+CELERY_TASK_DEFAULT_QUEUE = 'celery'
+CELERY_TASK_ROUTES = {
+    'apps.accounts.tasks.send_otp_email_task': {'queue': 'high_priority'},
+    'apps.accounts.tasks.send_email_change_otp_task': {'queue': 'high_priority'},
+    'apps.accounts.tasks.send_email_changed_security_alert_task': {'queue': 'high_priority'},
+    'apps.submissions.tasks.evaluate_submission_task': {'queue': 'submissions'},
+    'apps.achievements.tasks.check_achievements_task': {'queue': 'celery'},
+}
 
 JUDGE0_URL = env('JUDGE0_URL', default='http://judge0-server:2358')
 JUDGE0_AUTH_TOKEN = env('JUDGE0_AUTH_TOKEN', default='')

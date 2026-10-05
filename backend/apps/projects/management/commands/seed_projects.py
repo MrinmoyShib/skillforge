@@ -798,10 +798,18 @@ int main() {
                 )
                 self.stdout.write(f"Seeded Project: {project.title} ({project.language})")
 
-                # Reset and seed milestones
-                ProjectMilestone.objects.filter(project=project).delete()
+                # Seed milestones idempotently without wiping existing primary keys
+                seen_orders = []
                 for mdata in milestones_data:
-                    ProjectMilestone.objects.create(project=project, **mdata)
+                    order = mdata.get('order')
+                    seen_orders.append(order)
+                    ProjectMilestone.objects.update_or_create(
+                        project=project,
+                        order=order,
+                        defaults=mdata
+                    )
+                # Clean up any removed milestones
+                ProjectMilestone.objects.filter(project=project).exclude(order__in=seen_orders).delete()
 
         self.stdout.write(self.style.SUCCESS("Successfully seeded 6 Guided Projects and their verification suites!"))
 

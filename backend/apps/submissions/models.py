@@ -47,6 +47,7 @@ class Submission(TimeStampedModel):
             models.Index(fields=['user', '-created_at']),
             models.Index(fields=['problem', '-created_at']),
             models.Index(fields=['status', '-created_at']),
+            models.Index(fields=['user', 'problem', '-created_at'], name='idx_sub_user_problem_date'),
         ]
 
     def __str__(self):

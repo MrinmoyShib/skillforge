@@ -2,17 +2,23 @@ import React, { useEffect, useState } from 'react';
 import adminService from '../../services/api/adminService';
 import Spinner from '../../components/feedback/Spinner';
 import { useToast } from '../../components/feedback/Toast';
+import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export default function AdminUsersPage() {
   const toast = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Filters
   const [search, setSearch] = useState('');
   const [isStaff, setIsStaff] = useState('');
   const [isActive, setIsActive] = useState('');
+
+  const debouncedSearch = useDebounce(search, 300);
 
   // Selected User for Intel Drawer
   const [selectedUser, setSelectedUser] = useState(null);
@@ -27,13 +33,16 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const params = {};
-      if (search) params.search = search;
+      const params = { page };
+      if (debouncedSearch) params.search = debouncedSearch;
       if (isStaff !== '') params.is_staff = isStaff;
       if (isActive !== '') params.is_active = isActive;
 
       const data = await adminService.getUsers(params);
       setUsers(data.results || data);
+      if (data.count != null) {
+        setTotalCount(data.count);
+      }
       setError(null);
     } catch (err) {
       setError(err?.response?.data?.detail || 'Failed to fetch developer directory.');
@@ -43,8 +52,12 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, isStaff, isActive]);
+
+  useEffect(() => {
     fetchUsers();
-  }, [search, isStaff, isActive]);
+  }, [page, debouncedSearch, isStaff, isActive]);
 
   const handleInspectUser = async (userId) => {
     try {
@@ -267,6 +280,15 @@ export default function AdminUsersPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {users.length > 0 && (
+          <Pagination
+            currentPage={page}
+            totalCount={totalCount || users.length}
+            pageSize={20}
+            onPageChange={setPage}
+          />
         )}
       </div>
 

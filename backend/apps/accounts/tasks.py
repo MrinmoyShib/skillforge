@@ -14,7 +14,7 @@ def send_otp_email_task(self, email: str, username: str, otp_code: str):
     """
     Asynchronously sends a 6-digit verification code email for account registration.
     """
-    subject = f"SkillForge — Your Verification Code: {otp_code}"
+    subject = "SkillForge — Verification Code"
     message = (
         f"Hi {username},\n\n"
         f"Welcome to SkillForge!\n\n"
@@ -46,7 +46,7 @@ def send_email_change_otp_task(self, new_email: str, username: str, otp_code: st
     """
     Asynchronously sends a 6-digit verification code email to verify a new email address.
     """
-    subject = f"SkillForge — Verify Your New Email Address: {otp_code}"
+    subject = "SkillForge — Verify Your New Email Address"
     message = (
         f"Hi {username},\n\n"
         f"You recently requested to change your SkillForge account email to this address ({new_email}).\n\n"

@@ -70,13 +70,33 @@ class Judge0Engine(AbstractExecutionEngine):
 
     def is_available(self) -> bool:
         """
-        Pings Judge0 system info or languages endpoint to test connectivity.
+        Pings Judge0 system info endpoint with Redis caching and circuit breaking (IMP-014).
+        Caches health status for 30s; trips circuit breaker after 3 consecutive failures.
         """
+        from django.core.cache import cache
+
+        failures = cache.get('judge0_consecutive_failures', 0)
+        if failures >= 3:
+            return False
+
+        cached_status = cache.get('judge0_available')
+        if cached_status is not None:
+            return cached_status
+
         try:
             url = f"{self.base_url}/about"
-            resp = requests.get(url, headers=self._get_headers(), timeout=2.0)
-            return resp.status_code == 200
+            resp = requests.get(url, headers=self._get_headers(), timeout=1.5)
+            if resp.status_code == 200:
+                cache.set('judge0_consecutive_failures', 0, timeout=300)
+                cache.set('judge0_available', True, timeout=30)
+                return True
+            else:
+                cache.set('judge0_consecutive_failures', failures + 1, timeout=60)
+                cache.set('judge0_available', False, timeout=15)
+                return False
         except Exception:
+            cache.set('judge0_consecutive_failures', failures + 1, timeout=60)
+            cache.set('judge0_available', False, timeout=15)
             return False
 
     def execute(
@@ -89,7 +109,14 @@ class Judge0Engine(AbstractExecutionEngine):
         time_limit: float = 2.0,
         memory_limit: int = 262144
     ) -> ExecutionResult:
-        lang_id = JUDGE0_LANGUAGE_IDS.get(language, 54)
+        if language not in JUDGE0_LANGUAGE_IDS:
+            return ExecutionResult(
+                status=SubmissionStatus.INTERNAL_ERROR,
+                execution_time=0.0,
+                memory_usage=0,
+                error_message=f"Unsupported language: {language}"
+            )
+        lang_id = JUDGE0_LANGUAGE_IDS[language]
         url = f"{self.base_url}/submissions?base64_encoded=true&wait=false"
 
         payload = {
@@ -146,8 +173,8 @@ class Judge0Engine(AbstractExecutionEngine):
                 logger.warning(f"Error while polling Judge0 for token {token}: {exc}")
 
         return ExecutionResult(
-            status=SubmissionStatus.TIME_LIMIT_EXCEEDED,
-            execution_time=time_limit,
+            status=SubmissionStatus.INTERNAL_ERROR,
+            execution_time=0.0,
             memory_usage=0,
             error_message="Evaluation timed out waiting for Judge0 worker."
         )

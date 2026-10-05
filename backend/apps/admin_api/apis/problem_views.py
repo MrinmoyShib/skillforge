@@ -13,6 +13,7 @@ from ..serializers.problems import (
     AdminProblemListSerializer,
     AdminProblemDetailSerializer,
     AdminProblemCreateUpdateSerializer,
+    AdminTestCaseSerializer,
     AdminVerifySolutionInputSerializer,
     AdminVerifySolutionOutputSerializer,
 )
@@ -131,3 +132,25 @@ class AdminProblemViewSet(viewsets.ModelViewSet):
         }
         output_serializer = AdminVerifySolutionOutputSerializer(data)
         return Response(output_serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get', 'post'], url_path='test-cases')
+    def test_cases(self, request, pk=None):
+        """
+        GET: Lists all test cases (sample and hidden) for this problem.
+        POST: Creates a new test case for this problem.
+        """
+        problem = self.get_object()
+        if request.method == 'GET':
+            cases = problem.test_cases.all().order_by('order', 'id')
+            return Response(AdminTestCaseSerializer(cases, many=True).data)
+        elif request.method == 'POST':
+            serializer = AdminTestCaseSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            tc = TestCase.objects.create(
+                problem=problem,
+                input_data=serializer.validated_data.get('input_data', ''),
+                expected_output=serializer.validated_data.get('expected_output', ''),
+                is_sample=serializer.validated_data.get('is_sample', False),
+                order=serializer.validated_data.get('order', 1),
+            )
+            return Response(AdminTestCaseSerializer(tc).data, status=status.HTTP_201_CREATED)

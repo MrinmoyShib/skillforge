@@ -8,6 +8,17 @@ import { getLanguageInfo } from '../utils/languageUtils';
 import Spinner from '../components/feedback/Spinner';
 import { useToast } from '../components/feedback/Toast';
 
+const getDefaultStarterCode = (language) => {
+  const lang = (language || '').toLowerCase();
+  if (lang.includes('python') || lang === 'py') {
+    return 'def solve():\n    # Write your solution here\n    pass\n';
+  }
+  if (lang.includes('javascript') || lang.includes('node') || lang === 'js') {
+    return 'function solve() {\n    // Write your solution here\n}\n';
+  }
+  return '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your solution here\n    return 0;\n}\n';
+};
+
 export default function ProblemDetailPage() {
   const toast = useToast();
   const { slug } = useParams();
@@ -36,8 +47,7 @@ export default function ProblemDetailPage() {
         const data = await problemService.getProblemBySlug(slug);
         setProblem(data);
         setCode(
-          data.starter_code ||
-          '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your solution here\n    return 0;\n}\n'
+          data.starter_code || getDefaultStarterCode(data.language)
         );
       } catch {
         setError('Challenge not found or failed to load.');
@@ -389,6 +399,14 @@ export default function ProblemDetailPage() {
                 language={langInfo.monacoId}
                 value={code}
                 onChange={(val) => setCode(val || '')}
+                onMount={(editor, monaco) => {
+                  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+                    handleRunCode(false);
+                  });
+                  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Quote, () => {
+                    handleRunCode(true);
+                  });
+                }}
                 options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 4 }}
               />
             </div>
@@ -474,9 +492,15 @@ export default function ProblemDetailPage() {
                 <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 text-xs font-semibold flex items-center justify-between">
                   <span>🎉 All test cases passed successfully!</span>
                   {!activeSubmission.is_sample_run && (
-                    <span className="font-mono bg-emerald-900/60 px-2 py-0.5 rounded text-emerald-200">
-                      +{problem.xp_reward} XP Earned
-                    </span>
+                    (activeSubmission.xp_awarded == null || activeSubmission.xp_awarded > 0) ? (
+                      <span className="font-mono bg-emerald-900/60 px-2 py-0.5 rounded text-emerald-200">
+                        +{activeSubmission.xp_awarded ?? problem.xp_reward} XP Earned
+                      </span>
+                    ) : (
+                      <span className="font-mono bg-slate-800/80 border border-slate-700/50 px-2 py-0.5 rounded text-slate-400">
+                        Already Solved (+0 XP)
+                      </span>
+                    )
                   )}
                 </div>
               )}

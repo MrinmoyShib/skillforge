@@ -60,14 +60,15 @@ axiosClient.interceptors.response.use(
     }
 
     const requestUrl = originalRequest.url || '';
-    const isAuthEndpoint =
+    const isAuthBypassEndpoint =
       requestUrl.includes(ENDPOINTS.AUTH.LOGIN) ||
       requestUrl.includes(ENDPOINTS.AUTH.REGISTER) ||
       requestUrl.includes(ENDPOINTS.AUTH.REFRESH) ||
-      requestUrl.includes(ENDPOINTS.AUTH.ME);
+      requestUrl.includes(ENDPOINTS.AUTH.VERIFY_OTP) ||
+      requestUrl.includes(ENDPOINTS.AUTH.RESEND_OTP);
 
     // On 401: only attempt silent refresh on protected data requests that haven't retried yet
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthBypassEndpoint) {
       if (isRefreshing) {
         return new Promise(function(resolve, reject) {
           failedQueue.push({ resolve, reject });

@@ -1,6 +1,7 @@
 """
 Query-driven selectors for global and time-filtered leaderboard rankings.
 """
+from django.db.models import Q
 from apps.accounts.models import UserProfile
 from apps.progress.services.leveling import calculate_level
 
@@ -35,27 +36,31 @@ def get_global_leaderboard(
             "user_id": profile.user.id,
             "username": profile.user.username,
             "display_name": profile.display_name or profile.user.username,
-            "avatar_initial": (profile.display_name or profile.user.username or "U")[0].toUpperCase() if hasattr(str, 'toUpperCase') else (profile.display_name or profile.user.username or "U")[0].upper(),
+            "avatar_initial": (profile.display_name or profile.user.username or "U")[0].upper(),
             "level": level_info['level'],
             "level_title": level_info['title'],
             "total_xp": profile.total_xp,
             "problems_solved_count": profile.problems_solved_count,
-            "current_streak_days": profile.current_streak_days,
+            "current_streak_days": profile.active_streak_days,
             "is_current_user": bool(current_user and current_user.is_authenticated and profile.user_id == current_user.id),
         })
 
-    # Calculate exact standing of current user if logged in
+    # Calculate exact standing of current user if logged in with consistent tie-breakers
     current_user_rank = None
     if current_user and current_user.is_authenticated:
         try:
             curr_profile = current_user.profile
             if sort_by == 'solved':
                 better_users_count = qs.filter(
-                    problems_solved_count__gt=curr_profile.problems_solved_count
+                    Q(problems_solved_count__gt=curr_profile.problems_solved_count) |
+                    Q(problems_solved_count=curr_profile.problems_solved_count, total_xp__gt=curr_profile.total_xp) |
+                    Q(problems_solved_count=curr_profile.problems_solved_count, total_xp=curr_profile.total_xp, id__lt=curr_profile.id)
                 ).count()
             else:
                 better_users_count = qs.filter(
-                    total_xp__gt=curr_profile.total_xp
+                    Q(total_xp__gt=curr_profile.total_xp) |
+                    Q(total_xp=curr_profile.total_xp, problems_solved_count__gt=curr_profile.problems_solved_count) |
+                    Q(total_xp=curr_profile.total_xp, problems_solved_count=curr_profile.problems_solved_count, id__lt=curr_profile.id)
                 ).count()
             current_user_rank = better_users_count + 1
         except Exception:

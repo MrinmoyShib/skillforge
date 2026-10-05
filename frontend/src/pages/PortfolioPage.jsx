@@ -123,12 +123,6 @@ export default function PortfolioPage() {
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 pt-1 font-mono">
                 <span>📅 Joined {formatDate(user.joined_at)}</span>
 
-                {user.phone_number && (
-                  <span className="flex items-center gap-1 text-slate-300">
-                    <span>📞</span> {user.phone_number}
-                  </span>
-                )}
-
                 {user.github_url && sanitizeUrl(user.github_url) && (
                   <a
                     href={sanitizeUrl(user.github_url)}

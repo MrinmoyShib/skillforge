@@ -62,7 +62,7 @@ services:
       dockerfile: Dockerfile
     container_name: skillforge-celery
     restart: unless-stopped
-    command: celery -A config worker -l info
+    command: celery -A config worker -l info -Q high_priority,submissions,celery
     volumes:
       - ../backend:/app
     env_file:

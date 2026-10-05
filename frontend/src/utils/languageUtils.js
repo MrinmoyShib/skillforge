@@ -47,12 +47,33 @@ export const LANGUAGES = {
 };
 
 export function getLanguageInfo(item, prob = null) {
-  const raw = (typeof item === 'string' ? item : item?.language?.slug || item?.language || item?.track || item?.category?.slug || item?.slug || '').toLowerCase();
-  
-  const key = (raw.includes('python') || raw.startsWith('py') || raw.includes('/py-') || raw.includes('py-')) ? 'python' :
-              (raw.includes('javascript') || raw.includes('node') || raw.startsWith('js') || raw.includes('/js-') || raw.includes('js-')) ? 'javascript' :
-              (raw.includes('cpp')) ? 'cpp' : null;
-              
+  const explicitLang = (
+    typeof item === 'string'
+      ? item
+      : item?.language?.slug || item?.language || item?.track || prob?.language?.slug || prob?.language || ''
+  ).toLowerCase().trim();
+
+  let key = null;
+  if (explicitLang === 'python' || explicitLang === 'py') key = 'python';
+  else if (explicitLang === 'javascript' || explicitLang === 'js' || explicitLang === 'node') key = 'javascript';
+  else if (explicitLang === 'cpp' || explicitLang === 'c++') key = 'cpp';
+
+  if (!key) {
+    const raw = (
+      typeof item === 'string'
+        ? item
+        : item?.category?.slug || item?.slug || prob?.category?.slug || prob?.slug || ''
+    ).toLowerCase();
+
+    if (raw.includes('python') || raw.startsWith('py-') || raw.includes('/py-') || raw.includes('py-')) {
+      key = 'python';
+    } else if (raw.includes('javascript') || raw.includes('node') || raw.startsWith('js-') || raw.includes('/js-') || raw.includes('js-')) {
+      key = 'javascript';
+    } else if (raw.includes('cpp') || raw.startsWith('cpp-') || raw.includes('/cpp-') || raw.includes('cpp-')) {
+      key = 'cpp';
+    }
+  }
+
   return LANGUAGES[key] || { 
     name: 'Unknown', 
     label: 'Unknown',

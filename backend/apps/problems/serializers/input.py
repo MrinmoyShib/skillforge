@@ -22,8 +22,10 @@ class ProblemCreateInputSerializer(serializers.Serializer):
     description = serializers.CharField()
     difficulty = serializers.ChoiceField(choices=Problem.DIFFICULTY_CHOICES)
     challenge_level = serializers.IntegerField(min_value=1, max_value=5, default=1)
-    category_id = serializers.IntegerField()
+    category_id = serializers.IntegerField(required=False)
+    category_slug = serializers.CharField(required=False)
     tag_ids = serializers.ListField(child=serializers.IntegerField(), required=False, default=list)
+    test_cases = serializers.ListField(child=serializers.DictField(), required=False, default=list)
     xp_reward = serializers.IntegerField(min_value=0, required=False)
     constraints = serializers.CharField(required=False, allow_blank=True, default='')
     input_format = serializers.CharField(required=False, allow_blank=True, default='')
@@ -36,7 +38,7 @@ class ProblemCreateInputSerializer(serializers.Serializer):
     is_published = serializers.BooleanField(default=False)
 
     def validate_category_id(self, value):
-        if not Category.objects.filter(id=value).exists():
+        if value is not None and not Category.objects.filter(id=value).exists():
             raise serializers.ValidationError("Category does not exist.")
         return value
 
@@ -45,6 +47,26 @@ class ProblemCreateInputSerializer(serializers.Serializer):
         if existing_count != len(value):
             raise serializers.ValidationError("One or more tag IDs are invalid.")
         return value
+
+    def validate(self, attrs):
+        category_id = attrs.get('category_id')
+        category_slug = attrs.pop('category_slug', None)
+
+        if not category_id and category_slug:
+            cat = Category.objects.filter(slug=category_slug).first()
+            if not cat:
+                cat = Category.objects.create(
+                    slug=category_slug,
+                    name=category_slug.replace('-', ' ').title()
+                )
+            attrs['category_id'] = cat.id
+        elif not category_id:
+            first_cat = Category.objects.first()
+            if not first_cat:
+                first_cat = Category.objects.create(name='General', slug='general')
+            attrs['category_id'] = first_cat.id
+
+        return attrs
 
 
 class ProblemUpdateInputSerializer(serializers.Serializer):
@@ -64,6 +86,11 @@ class ProblemUpdateInputSerializer(serializers.Serializer):
     time_limit_seconds = serializers.FloatField(required=False)
     memory_limit_kb = serializers.IntegerField(required=False)
     is_published = serializers.BooleanField(required=False)
+
+    def validate_category_id(self, value):
+        if value is not None and not Category.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Category does not exist.")
+        return value
 
 
 class TestCaseCreateInputSerializer(serializers.Serializer):

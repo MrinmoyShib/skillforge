@@ -371,6 +371,11 @@ export default function ProjectWorkspacePage() {
                 language={project?.language === 'python' ? 'python' : project?.language === 'javascript' ? 'javascript' : 'cpp'}
                 value={activeMilestone ? codeMap[activeMilestone.id] || '' : ''}
                 onChange={(val) => handleCodeChange(val || '')}
+                onMount={(editor, monaco) => {
+                  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+                    handleVerifyMilestone();
+                  });
+                }}
                 options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 4 }}
               />
             </div>

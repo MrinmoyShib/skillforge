@@ -1,6 +1,7 @@
 """
 Input serializers for authentication and profile management.
 """
+import re
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -17,9 +18,12 @@ class RegisterInputSerializer(serializers.Serializer):
     display_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default='')
 
     def validate_username(self, value):
-        if User.objects.filter(username__iexact=value).exists():
+        cleaned_value = value.strip()
+        if not re.match(r'^[a-zA-Z0-9_-]+$', cleaned_value):
+            raise serializers.ValidationError("Username can only contain letters, numbers, underscores, and hyphens.")
+        if User.objects.filter(username__iexact=cleaned_value).exists():
             raise serializers.ValidationError("A user with that username already exists.")
-        return value
+        return cleaned_value
 
     def validate_email(self, value):
         if User.objects.filter(email__iexact=value).exists():
@@ -67,13 +71,16 @@ class ProfileUpdateInputSerializer(serializers.Serializer):
     website_url = serializers.URLField(max_length=255, required=False, allow_blank=True)
 
     def validate_username(self, value):
+        cleaned_value = value.strip()
+        if not re.match(r'^[a-zA-Z0-9_-]+$', cleaned_value):
+            raise serializers.ValidationError("Username can only contain letters, numbers, underscores, and hyphens.")
         user = self.context.get('request').user if self.context.get('request') else None
-        qs = User.objects.filter(username__iexact=value)
+        qs = User.objects.filter(username__iexact=cleaned_value)
         if user and user.is_authenticated:
             qs = qs.exclude(id=user.id)
         if qs.exists():
             raise serializers.ValidationError("A user with that username already exists.")
-        return value
+        return cleaned_value
 
     def validate_email(self, value):
         user = self.context.get('request').user if self.context.get('request') else None
@@ -82,6 +89,36 @@ class ProfileUpdateInputSerializer(serializers.Serializer):
                 "Direct email change is disabled for security. Please use the 'Change Email' verification feature."
             )
         return value.lower().strip()
+
+    def validate_display_name(self, value):
+        from django.utils.html import strip_tags
+        return strip_tags(value).strip() if value else value
+
+    def validate_bio(self, value):
+        from django.utils.html import strip_tags
+        return strip_tags(value).strip() if value else value
+
+    def validate_location(self, value):
+        from django.utils.html import strip_tags
+        return strip_tags(value).strip() if value else value
+
+    def validate_github_url(self, value):
+        val = value.strip() if value else ''
+        if val and not re.match(r'^https?://(www\.)?github\.com/[A-Za-z0-9_.-]+/?$', val, re.IGNORECASE):
+            raise serializers.ValidationError("Must be a valid GitHub profile URL (e.g., https://github.com/username).")
+        return val
+
+    def validate_linkedin_url(self, value):
+        val = value.strip() if value else ''
+        if val and not re.match(r'^https?://([a-z]{2,3}\.)?linkedin\.com/(in|company)/[A-Za-z0-9_.-]+/?$', val, re.IGNORECASE):
+            raise serializers.ValidationError("Must be a valid LinkedIn profile URL (e.g., https://linkedin.com/in/username).")
+        return val
+
+    def validate_twitter_url(self, value):
+        val = value.strip() if value else ''
+        if val and not re.match(r'^https?://(www\.)?(twitter\.com|x\.com)/[A-Za-z0-9_]+/?$', val, re.IGNORECASE):
+            raise serializers.ValidationError("Must be a valid X/Twitter profile URL (e.g., https://x.com/username).")
+        return val
 
 
 class ChangePasswordInputSerializer(serializers.Serializer):

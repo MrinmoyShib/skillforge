@@ -3,7 +3,7 @@ Admin Analytics & Telemetry API View.
 """
 from datetime import timedelta
 from django.db import connection
-from django.db.models import Q, Count
+from django.db.models import Q, Count, F, Func, IntegerField, Sum
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -45,9 +45,17 @@ class AdminAnalyticsAPI(APIView):
 
         # Projects
         total_projects = Project.objects.count()
-        total_milestones_completed = sum(
-            len(milestones or []) for milestones in UserProjectProgress.objects.values_list('completed_milestones', flat=True)
-        )
+        try:
+            total_milestones_completed = (
+                UserProjectProgress.objects
+                .exclude(completed_milestones=[])
+                .annotate(m_count=Func(F('completed_milestones'), function='jsonb_array_length', output_field=IntegerField()))
+                .aggregate(total=Sum('m_count'))['total'] or 0
+            )
+        except Exception:
+            total_milestones_completed = sum(
+                len(milestones) for milestones in UserProjectProgress.objects.values_list('completed_milestones', flat=True).iterator(chunk_size=1000) if milestones
+            )
 
         # Submissions
         total_submissions = Submission.objects.count()

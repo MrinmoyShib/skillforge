@@ -35,10 +35,13 @@ class TestLeaderboardAPI:
         top_three = data["results"][:3]
         assert top_three[0]["username"] == "bob"
         assert top_three[0]["rank"] == 1
+        assert top_three[0]["avatar_initial"] == "B"
         assert top_three[1]["username"] == "alice"
         assert top_three[1]["rank"] == 2
+        assert top_three[1]["avatar_initial"] == "A"
         assert top_three[2]["username"] == "charlie"
         assert top_three[2]["rank"] == 3
+        assert top_three[2]["avatar_initial"] == "C"
 
     def test_get_leaderboard_ordering_by_solved(self, api_client, sample_users):
         res = api_client.get("/api/v1/leaderboard/?sort=solved")

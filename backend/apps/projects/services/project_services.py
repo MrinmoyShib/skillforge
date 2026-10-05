@@ -37,6 +37,18 @@ def verify_milestone(*, user, project: Project, milestone: ProjectMilestone, sou
     Executes student milestone implementation against the milestone verification test harness.
     Awards XP and advances milestone progress atomically if tests pass.
     """
+    # Enforce prerequisite milestone completion in guided projects (§11.2)
+    if milestone.order > 1:
+        user_progress = UserProjectProgress.objects.filter(user=user, project=project).first()
+        completed_ids = set(user_progress.completed_milestones) if user_progress else set()
+        prior_milestones = project.milestones.filter(order__lt=milestone.order)
+        missing_orders = [m.order for m in prior_milestones if m.id not in completed_ids]
+        if missing_orders:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError(
+                {"detail": f"You must complete Milestone {missing_orders[0]} before verifying Milestone {milestone.order}."}
+            )
+
     # 1. Combine student source code with verification test harness
     if project.language == 'python':
         combined_code = f"{source_code}\n\n# --- AUTOMATED VERIFICATION TEST HARNESS ---\n{milestone.test_harness_code}"
@@ -129,14 +141,41 @@ def verify_milestone(*, user, project: Project, milestone: ProjectMilestone, sou
 
         progress.save()
 
-        # Update user profile XP and level
+        # Update user profile XP, level, and streak
         if xp_to_award > 0:
             profile = UserProfile.objects.select_for_update().get(user=user)
+            old_level = profile.current_level
             profile.total_xp += xp_to_award
 
             level_info = calculate_level(profile.total_xp)
-            profile.current_level = level_info['level']
-            profile.save()
+            new_level = level_info['level']
+            profile.current_level = new_level
+
+            today = timezone.now().date()
+            if profile.last_solve_date:
+                days_diff = (today - profile.last_solve_date).days
+                if days_diff == 1:
+                    profile.current_streak_days += 1
+                elif days_diff > 1:
+                    profile.current_streak_days = 1
+            else:
+                profile.current_streak_days = 1
+            profile.last_solve_date = today
+
+            profile.save(update_fields=['total_xp', 'current_level', 'current_streak_days', 'last_solve_date'])
+
+            if new_level > old_level:
+                ActivityLog.objects.create(
+                    user=user,
+                    activity_type=ActivityLog.ActivityType.LEVEL_UP,
+                    description=f"Leveled up to Level {new_level}: {level_info['title']}!",
+                    metadata={
+                        "old_level": old_level,
+                        "new_level": new_level,
+                        "title": level_info['title'],
+                        "total_xp": profile.total_xp,
+                    }
+                )
 
             # Activity logging
             if project_just_completed:

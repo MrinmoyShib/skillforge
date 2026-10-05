@@ -103,3 +103,28 @@ class TestAchievementsAPI:
         assert len(granted_second) == 0
         assert UserAchievement.objects.filter(user=student_user).count() == 1
 
+    def test_achievement_bonus_xp_recalculates_level_and_logs_level_up(self, student_user, seed_achievements_fixture):
+        from apps.progress.models import ActivityLog
+        # User starts at 80 XP (Level 1, threshold for Level 2 is 100)
+        student_user.profile.total_xp = 80
+        student_user.profile.current_level = 1
+        student_user.profile.problems_solved_count = 1
+        student_user.profile.save()
+
+        # Grant first-blood (awards 25 XP bonus -> total 105 XP -> crosses into Level 2)
+        granted = check_and_grant_achievements(student_user)
+        assert len(granted) == 1
+        assert granted[0].slug == "first-blood"
+
+        student_user.profile.refresh_from_db()
+        assert student_user.profile.total_xp == 105
+        assert student_user.profile.current_level == 2
+
+        # Verify ActivityLog has LEVEL_UP
+        level_up_log = ActivityLog.objects.filter(
+            user=student_user,
+            activity_type=ActivityLog.ActivityType.LEVEL_UP
+        ).first()
+        assert level_up_log is not None
+        assert "Level 2" in level_up_log.description
+

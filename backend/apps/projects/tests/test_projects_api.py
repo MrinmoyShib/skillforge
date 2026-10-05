@@ -143,3 +143,19 @@ class TestProjectsAPI:
         up = UserProjectProgress.objects.get(user=student_user, project=sample_project)
         assert up.status == "COMPLETED"
         assert len(up.completed_milestones) == 2
+
+    def test_seed_projects_command_is_idempotent_and_preserves_milestone_ids(self, db):
+        """
+        Verify BUG-040 fix: running seed_projects multiple times does NOT delete
+        and recreate ProjectMilestone IDs, preserving student progress references.
+        """
+        from django.core.management import call_command
+        call_command('seed_projects')
+        first_run = list(ProjectMilestone.objects.order_by('id').values('id', 'project_id', 'order', 'title'))
+        assert len(first_run) > 0
+
+        # Run seeder a second time
+        call_command('seed_projects')
+        second_run = list(ProjectMilestone.objects.order_by('id').values('id', 'project_id', 'order', 'title'))
+
+        assert first_run == second_run

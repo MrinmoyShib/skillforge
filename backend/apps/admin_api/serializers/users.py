@@ -53,7 +53,7 @@ class AdminUserDetailSerializer(serializers.ModelSerializer):
     current_level = serializers.IntegerField(source='profile.current_level', read_only=True)
     level_title = serializers.SerializerMethodField()
     total_xp = serializers.IntegerField(source='profile.total_xp', read_only=True)
-    streak_days = serializers.IntegerField(source='profile.current_streak_days', read_only=True)
+    streak_days = serializers.IntegerField(source='profile.active_streak_days', read_only=True)
     
     track_breakdown = serializers.SerializerMethodField()
     enrolled_projects = serializers.SerializerMethodField()

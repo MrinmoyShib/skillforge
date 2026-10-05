@@ -2,18 +2,25 @@ import React, { useEffect, useState } from 'react';
 import adminService from '../../services/api/adminService';
 import Spinner from '../../components/feedback/Spinner';
 import { useToast } from '../../components/feedback/Toast';
+import { useDebounce } from '../../hooks/useDebounce';
+import { Pagination } from '../../components/ui/Pagination';
 
 export default function AdminSubmissionsPage() {
   const toast = useToast();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
   const [languageFilter, setLanguageFilter] = useState('');
   const [usernameFilter, setUsernameFilter] = useState('');
   const [problemFilter, setProblemFilter] = useState('');
+
+  const debouncedUsername = useDebounce(usernameFilter, 300);
+  const debouncedProblem = useDebounce(problemFilter, 300);
 
   // Code Inspector Modal
   const [inspectingSub, setInspectingSub] = useState(null);
@@ -23,14 +30,17 @@ export default function AdminSubmissionsPage() {
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const params = {};
+      const params = { page };
       if (statusFilter) params.status = statusFilter;
       if (languageFilter) params.language = languageFilter;
-      if (usernameFilter) params.username = usernameFilter;
-      if (problemFilter) params.problem_slug = problemFilter;
+      if (debouncedUsername) params.username = debouncedUsername;
+      if (debouncedProblem) params.problem_slug = debouncedProblem;
 
       const data = await adminService.getSubmissions(params);
       setSubmissions(data.results || data);
+      if (data.count != null) {
+        setTotalCount(data.count);
+      }
       setError(null);
     } catch (err) {
       setError(err?.response?.data?.detail || 'Failed to load submissions audit log.');
@@ -40,8 +50,12 @@ export default function AdminSubmissionsPage() {
   };
 
   useEffect(() => {
+    setPage(1);
+  }, [statusFilter, languageFilter, debouncedUsername, debouncedProblem]);
+
+  useEffect(() => {
     fetchSubmissions();
-  }, [statusFilter, languageFilter, usernameFilter, problemFilter]);
+  }, [page, statusFilter, languageFilter, debouncedUsername, debouncedProblem]);
 
   const handleInspect = async (subId) => {
     try {
@@ -231,6 +245,15 @@ export default function AdminSubmissionsPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {submissions.length > 0 && (
+          <Pagination
+            currentPage={page}
+            totalCount={totalCount || submissions.length}
+            pageSize={20}
+            onPageChange={setPage}
+          />
         )}
       </div>
 

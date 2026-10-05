@@ -12,5 +12,10 @@ class ProjectFilterInputSerializer(serializers.Serializer):
 
 
 class MilestoneVerifyInputSerializer(serializers.Serializer):
-    source_code = serializers.CharField(help_text="Student's implementation code for the milestone")
+    source_code = serializers.CharField(
+        min_length=1,
+        max_length=65536,
+        help_text="Student's implementation code for the milestone",
+        error_messages={"max_length": "Source code cannot exceed 64 KB."}
+    )
 

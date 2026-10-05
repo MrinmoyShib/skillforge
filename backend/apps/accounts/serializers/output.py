@@ -17,7 +17,7 @@ class UserProfileOutputSerializer(serializers.Serializer):
     total_xp = serializers.IntegerField()
     current_level = serializers.IntegerField()
     problems_solved_count = serializers.IntegerField()
-    current_streak_days = serializers.IntegerField()
+    current_streak_days = serializers.IntegerField(source='active_streak_days')
     last_solve_date = serializers.DateField(allow_null=True)
     created_at = serializers.DateTimeField()
 

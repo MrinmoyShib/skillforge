@@ -1,6 +1,9 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.core.cache import cache
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 
 class LevelRequirement(models.Model):
@@ -18,6 +21,19 @@ class LevelRequirement(models.Model):
 
     def __str__(self):
         return f"Level {self.level} ({self.title}) — {self.xp_threshold} XP"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        cache.delete('level_requirements')
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        cache.delete('level_requirements')
+
+
+@receiver([post_save, post_delete], sender=LevelRequirement)
+def invalidate_level_requirements_cache(sender, **kwargs):
+    cache.delete('level_requirements')
 
 
 class UserProgress(models.Model):

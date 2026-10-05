@@ -23,6 +23,7 @@ def portfolio_user(db):
     profile = UserProfile.objects.create(
         user=user,
         display_name="Dev Showcase",
+        phone_number="+1 555-0199",
         total_xp=250,
         problems_solved_count=3,
         current_streak_days=5,
@@ -113,6 +114,7 @@ class TestPortfolioAPI:
         assert data["user"]["total_xp"] == 250
         assert data["user"]["current_streak_days"] == 5
         assert "github_url" in data["user"]
+        assert "phone_number" not in data["user"]
 
         # Check tracks
         assert len(data["tracks"]) >= 1

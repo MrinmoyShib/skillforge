@@ -40,12 +40,23 @@ class HealthCheckView(APIView):
             overall_status_code = status.HTTP_503_SERVICE_UNAVAILABLE
             
         redis_status = "connected"
+        r = None
         try:
-            r = redis.from_url(settings.CELERY_BROKER_URL)
+            r = redis.from_url(
+                settings.CELERY_BROKER_URL,
+                socket_connect_timeout=2.0,
+                socket_timeout=2.0,
+            )
             r.ping()
         except Exception:
             redis_status = "disconnected"
             overall_status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        finally:
+            if r is not None:
+                try:
+                    r.close()
+                except Exception:
+                    pass
 
         return Response({
             "status": "healthy" if overall_status_code == status.HTTP_200_OK else "unhealthy",

@@ -20,6 +20,7 @@ def get_aggregated_dashboard_data(user) -> dict:
     # 1. Category Mastery Calculation
     categories = Category.objects.all().order_by('display_order', 'id')
     category_mastery = []
+    recommended_problems = []
 
     solved_problem_ids = list(
         UserProgress.objects.filter(user=user, solved=True).values_list('problem_id', flat=True)
@@ -90,6 +91,18 @@ def get_aggregated_dashboard_data(user) -> dict:
             "next_unsolved_slug": next_unsolved.slug if next_unsolved else None,
         })
 
+        if next_unsolved:
+            recommended_problems.append({
+                "id": next_unsolved.id,
+                "title": next_unsolved.title,
+                "slug": next_unsolved.slug,
+                "category_name": cat.name,
+                "language": getattr(next_unsolved, 'language', cat.slug),
+                "difficulty": next_unsolved.difficulty,
+                "challenge_level": next_unsolved.challenge_level,
+                "xp_reward": next_unsolved.xp_reward,
+            })
+
     # 2. Recent Submissions
     submissions_qs = (
         Submission.objects.filter(user=user)
@@ -116,26 +129,6 @@ def get_aggregated_dashboard_data(user) -> dict:
     ]
 
     # 3. Recommended Next Challenges (Personalized per language track)
-    recommended_problems = []
-    for cat in categories:
-        unsolved_in_cat = (
-            Problem.objects.filter(category=cat, is_published=True)
-            .exclude(id__in=solved_problem_ids)
-            .order_by('challenge_level', 'id')
-            .first()
-        )
-        if unsolved_in_cat:
-            recommended_problems.append({
-                "id": unsolved_in_cat.id,
-                "title": unsolved_in_cat.title,
-                "slug": unsolved_in_cat.slug,
-                "category_name": unsolved_in_cat.category.name if unsolved_in_cat.category else "Track",
-                "language": getattr(unsolved_in_cat, 'language', cat.slug),
-                "difficulty": unsolved_in_cat.difficulty,
-                "challenge_level": unsolved_in_cat.challenge_level,
-                "xp_reward": unsolved_in_cat.xp_reward,
-            })
-
     if len(recommended_problems) < 3:
         existing_ids = [p["id"] for p in recommended_problems]
         extra_unsolved = (
